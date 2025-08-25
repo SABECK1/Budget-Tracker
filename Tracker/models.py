@@ -23,9 +23,9 @@ class TransactionSubType(models.Model):
     def __str__(self):
         return f"{self.transaction_type.name} - {self.name}"
 
-    def get_parent_type(self):
+    def get_expense_factor(self):
         """Return the parent TransactionType instance of this subtype."""
-        return self.transaction_type
+        return self.transaction_type.expense_factor
 
 
 class Transaction(models.Model):
