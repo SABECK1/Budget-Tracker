@@ -8,7 +8,10 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "@primeuix/themes": "^1.2.3",
+    "axios": "^1.11.0",
     "core-js": "^3.8.3",
+    "primevue": "^4.3.7",
     "vue": "^3.2.13"
   },
   "devDependencies": {
@@ -32,7 +35,9 @@
     "parserOptions": {
       "parser": "@babel/eslint-parser"
     },
-    "rules": {}
+    "rules": {
+      "vue/multi-word-component-names": "off"
+    }
   },
   "browserslist": [
     "> 1%",
