@@ -29,8 +29,8 @@ router.register(r'transactiontypes', views.TransactionSubtypeViewSet)
 
 
 urlpatterns = [
-    path('', include(router.urls)),
-    # path("tracker/", include("Tracker.urls")),
+    path('api/', include(router.urls)),
+    path('', include("Tracker.urls")),
     path('admin/', admin.site.urls),
-    path('api-auth/', include('rest_framework.urls'))
+    # path('api-auth/', include('rest_framework.urls'))
 ]

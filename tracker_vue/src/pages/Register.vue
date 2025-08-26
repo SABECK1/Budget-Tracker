@@ -59,6 +59,7 @@ export default {
           }),
           credentials: "include"
         })
+        console.log(response)
 
         const data = await response.json()
 
