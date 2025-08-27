@@ -1,43 +1,72 @@
 <template>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="#">Navbar</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item">
-          <a class="nav-link active" aria-current="page" href="#">Home</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#">Link</a>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            Dropdown
-          </a>
-          <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-            <li><a class="dropdown-item" href="#">Action</a></li>
-            <li><a class="dropdown-item" href="#">Another action</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="#">Something else here</a></li>
-          </ul>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a>
-        </li>
-      </ul>
-      <form class="d-flex">
-        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-        <button class="btn btn-outline-success" type="submit">Search</button>
-      </form>
-    </div>
-  </div>
-</nav>
+  <Menubar :model="items">
+    <template #end>
+      <!-- Right side login/logout buttons -->
+      <Button
+        v-if="authStore.isAuthenticated"
+        label="Logout"
+        icon="pi pi-sign-out"
+        class="p-button-outlined"
+        @click="logout"
+      />
+      <Button
+        v-else
+        label="Login"
+        icon="pi pi-sign-in"
+        class="p-button-outlined"
+        @click="router.push('/login')"
+      />
+    </template>
+  </Menubar>
 </template>
-<script>
-export default {
-    name:'AppNavigation'
+
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../store/auth.js'
+
+// PrimeVue components
+import Menubar from 'primevue/menubar'
+import Button from 'primevue/button'
+
+const authStore = useAuthStore()
+const router = useRouter()
+
+// Logout function
+const logout = async () => {
+  try {
+    await authStore.logout(router)
+  } catch (error) {
+    console.error(error)
+  }
 }
+
+// Menu items
+const items = ref([
+  {
+    label: 'Home',
+    icon: 'pi pi-home',
+    command: () => router.push('/')
+  },
+  {
+    label: 'Link',
+    icon: 'pi pi-link',
+    command: () => router.push('/link')
+  },
+  {
+    label: 'Dropdown',
+    icon: 'pi pi-bars',
+    items: [
+      { label: 'Action', command: () => console.log('Action clicked') },
+      { label: 'Another Action', command: () => console.log('Another action clicked') },
+      { separator: true },
+      { label: 'Something else here', command: () => console.log('Something else clicked') }
+    ]
+  },
+  {
+    label: 'Disabled',
+    icon: 'pi pi-ban',
+    disabled: true
+  }
+])
 </script>
