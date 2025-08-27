@@ -13,10 +13,15 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
         model = Group
         fields = ['url', 'name']
 
+class TransactionTypeSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = models.TransactionType
+        fields = ['url', 'id', 'name', 'description', 'expense_factor']
+
 class TransactionSubtypeSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = models.TransactionSubType
-        fields = ['name','description']
+        fields = ['transaction_type','name','description']
 
 class TransactionSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:

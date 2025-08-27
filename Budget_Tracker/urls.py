@@ -24,7 +24,8 @@ router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet)
 router.register(r'transactions', views.TransactionViewSet)
-router.register(r'transactiontypes', views.TransactionSubtypeViewSet)
+router.register(r'transactionsubtypes', views.TransactionSubtypeViewSet)
+router.register(r'transactiontypes', views.TransactionTypeViewSet)
 
 
 

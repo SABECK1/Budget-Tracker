@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-
+import Cookies from 'js-cookie'
 export const useAuthStore = defineStore('auth', {
     state: () => {
         const storedState = localStorage.getItem('authState')
@@ -12,18 +12,18 @@ export const useAuthStore = defineStore('auth', {
     },
     actions: {
         async setCsrfToken() {
-            await fetch(`${process.env.VUE_APP_API_BASE_URL}/api/set-csrf-token`, {
+            await fetch(`${process.env.VUE_APP_API_BASE_URL}/set-csrf-token`, {
                 method: 'GET',
                 credentials: 'include',
             })
         },
 
         async login(email, password, router = null) {
-            const response = await fetch(`${process.env.VUE_APP_API_BASE_URL}/api/login`, {
+            const response = await fetch(`${process.env.VUE_APP_API_BASE_URL}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken(),
+                    'X-CSRFToken': Cookies.get('csrftoken'),
                 },
                 body: JSON.stringify({
                     email,
@@ -49,10 +49,10 @@ export const useAuthStore = defineStore('auth', {
 
         async logout(router = null) {
             try {
-                const response = await fetch(`${process.env.VUE_APP_API_BASE_URL}/api/logout`, {
+                const response = await fetch(`${process.env.VUE_APP_API_BASE_URL}/logout`, {
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': getCSRFToken(),
+                        'X-CSRFToken': Cookies.get('csrftoken'),
                     },
                     credentials: 'include',
                 })
@@ -74,11 +74,11 @@ export const useAuthStore = defineStore('auth', {
 
         async fetchUser() {
             try {
-                const response = await fetch(`${process.env.VUE_APP_API_BASE_URL}/api/user`, {
+                const response = await fetch(`${process.env.VUE_APP_API_BASE_URL}/user`, {
                     credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': getCSRFToken(),
+                        'X-CSRFToken': Cookies.get('csrftoken'),
                     },
                 })
                 if (response.ok) {
@@ -116,25 +116,21 @@ export const useAuthStore = defineStore('auth', {
     },
 })
 
-export function getCSRFToken() {
-    /*
-      We get the CSRF token from the cookie to include in our requests.
-      This is necessary for CSRF protection in Django.
-       */
-    const name = 'csrftoken'
-    let cookieValue = null
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';')
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim()
-            if (cookie.substring(0, name.length + 1) === name + '=') {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
-                break
-            }
-        }
-    }
-    if (cookieValue === null) {
-        throw 'Missing CSRF cookie.'
-    }
-    return cookieValue
-}
+// export function getCSRFToken() {
+//     // let cookieValue = null;
+//     // if (document.cookie && document.cookie !== '') {
+//     //     const cookies = document.cookie.split(';');
+//     //     for (let i = 0; i < cookies.length; i++) {
+//     //         const cookie = cookies[i].trim();
+//     //         // Does this cookie string begin with the name we want?
+//     //         if (cookie.substring(0, name.length + 1) === (name + '=')) {
+//     //             cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+//     //             break;
+//     //         }
+//     //     }
+//     // }
+//     // console.log("CSRF Token:", cookieValue);
+//     // return cookieValue;
+
+    
+// }

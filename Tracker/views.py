@@ -5,7 +5,7 @@ from django.contrib.auth.models import Group, User
 from rest_framework import permissions, viewsets
 from Tracker.models import *
 # from serializers import *
-from .serializers import GroupSerializer, UserSerializer, TransactionSubtypeSerializer, TransactionSerializer
+from .serializers import GroupSerializer, UserSerializer, TransactionSubtypeSerializer, TransactionSerializer, TransactionTypeSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -31,7 +31,7 @@ class TransactionSubtypeViewSet(viewsets.ModelViewSet):
     """
     queryset = TransactionSubType.objects.all().order_by('name')
     serializer_class = TransactionSubtypeSerializer
-    # permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
 class TransactionViewSet(viewsets.ModelViewSet):
     """
@@ -41,6 +41,14 @@ class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+
+class TransactionTypeViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows Transaction Types (Income/Expense categories) to be viewed or edited.
+    """
+    queryset = TransactionType.objects.all().order_by('name')
+    serializer_class = TransactionTypeSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 from django.shortcuts import render
 from django.http import JsonResponse

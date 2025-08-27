@@ -50,18 +50,13 @@ REST_FRAMEWORK = {
 }
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ORIGIN_ALLOW_ALL=True
+CORS_ALLOWED_ORIGINS = ["http://localhost:8080", "http://127.0.0.1:8080"]  # We add your frontend URL here.
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8080', "http://127.0.0.1:8080"]  # We add your frontend URL here.
 
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:8080",  
-#     "http://localhost:8000"
-# ]
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:8080",
-    "http://localhost:8000",
-    "http://127.0.0.1:8080"
-]
-
+CSRF_COOKIE_SECURE = False  # We set it to False only in development. In production, it should be True.
+CSRF_COOKIE_HTTPONLY = False  # We need to access the CSRF token from the frontend, so it cannot be HttpOnly.
+# SESSION_COOKIE_SECURE = False  # We set it to False only in development. In production, it should be True.
+# CSRF_USE_SESSIONS = False  # We set it to False to use CSRF cookies. If True, CSRF tokens will be stored in the session.
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
