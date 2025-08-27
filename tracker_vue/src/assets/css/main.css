@@ -3,3 +3,8 @@
     --indigo: #408ec6;
     --red: #7a2048;
 }
+
+body {
+    background-color: var(--body-bg);
+    color: var(--text-color);
+}

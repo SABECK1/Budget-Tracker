@@ -17,7 +17,6 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div class="app-dark">
     <AppNavigation />
     <div v-if="authStore.isAuthenticated">
         <AuthenticatedHomePage />
@@ -26,5 +25,4 @@ onMounted(async () => {
         <UnAuthenticatedHomePage />
     </p>
     <AppFooter />
-    </div>
 </template>
