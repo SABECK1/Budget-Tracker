@@ -6,7 +6,55 @@ from rest_framework import permissions, viewsets
 from Tracker.models import *
 # from serializers import *
 from .serializers import GroupSerializer, UserSerializer, TransactionSubtypeSerializer, TransactionSerializer, TransactionTypeSerializer
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from .models import Transaction
+import io
+import csv
 
+class CSVUploadView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, *args, **kwargs):
+        csv_file = request.FILES.get("file")
+        if not csv_file:
+            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not csv_file.name.endswith(".csv"):
+            return Response({"error": "File must be a CSV"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            data = csv_file.read().decode("utf-8")
+        except UnicodeDecodeError:
+            return Response({"error": "Could not decode file, expected UTF-8"}, status=status.HTTP_400_BAD_REQUEST)
+
+        io_string = io.StringIO(data)
+        reader = csv.DictReader(io_string)  # use header row for mapping
+
+        # # validate required columns
+        # required_columns = {"name", "age", "email"}
+        # if not required_columns.issubset(reader.fieldnames):
+        #     return Response({"error": f"CSV must contain columns: {required_columns}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # process rows
+        created_count = 0
+
+        next(reader)  # skip header row
+        for row in reader:
+            Transaction.objects.create(
+                created_at=row[0],
+                transaction_subtype=row[1],
+                amount=row[2],
+                note=row[3],
+                isin=row[4],
+                quantity=row[5],
+                fee=row[6],
+                tax=row[7],
+            )
+
+        return Response({"status": f"Imported {created_count} rows"}, status=status.HTTP_201_CREATED)
 
 class UserViewSet(viewsets.ModelViewSet):
     """
