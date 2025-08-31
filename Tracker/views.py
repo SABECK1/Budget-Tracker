@@ -18,6 +18,18 @@ class CSVUploadView(APIView):
     serializer_class = CSVUploadSerializer
     parser_classes = [MultiPartParser, FormParser]
 
+    def get_transaction_subtype(self, is_stock: bool, amount: float):
+        if not is_stock:  # ISIN empty
+            if amount < 0:
+                return TransactionSubType.objects.get(name="Outflow") # Regular expense
+            else:
+                return TransactionSubType.objects.get(name="Inflow") # Regular income
+        else:  # ISIN present
+            if amount < 0:
+                return TransactionSubType.objects.get(name="Buy") # Savings for stocks
+            else:
+                return TransactionSubType.objects.get(name="Sell") # Income from Stocks
+
     def post(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -29,27 +41,27 @@ class CSVUploadView(APIView):
         csv_file = serializer.validated_data["file"]
         data = csv_file.read().decode("utf-8")
         io_string = io.StringIO(data)
-        reader = csv.DictReader(io_string)
+        reader = csv.reader(io_string, delimiter=";")
 
-        io_string = io.StringIO(data)
-        reader = csv.DictReader(io_string)  # use header row for mapping
+        # Skip header row manually
+        next(reader, None)
 
-        # process rows
         created_count = 0
-
-        next(reader)  # skip header row
         for row in reader:
+            if not row:  # skip empty lines
+                continue
             Transaction.objects.create(
                 user=request.user,
                 created_at=row[0],
-                transaction_subtype=row[1],
-                amount=row[2],
-                note=row[3],
-                isin=row[4],
-                quantity=row[5],
-                fee=row[6],
-                tax=row[7],
+                transaction_subtype = self.get_transaction_subtype(True if len(row) > 4 else False, float(row[2]) if row[2] else float(0.0)),
+                amount=float(row[2]) if row[2] else float(0.0),
+                note=row[3] if row[3] else "",
+                isin=row[4] if row[4] else "",
+                quantity=float(row[5]) if row[5] else float(0.0),
+                fee=float(row[6]) if row[6] else float(0.0),
+                tax=float(row[7]) if row[7] else float(0.0),
             )
+            created_count += 1
 
         return Response({"status": f"Imported {created_count} rows"}, status=status.HTTP_201_CREATED)
 
