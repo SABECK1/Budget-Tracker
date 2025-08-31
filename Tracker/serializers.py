@@ -2,6 +2,16 @@ from django.contrib.auth.models import Group, User
 from Tracker import models
 from rest_framework import serializers
 
+# serializers.py
+from rest_framework import serializers
+
+class CSVUploadSerializer(serializers.Serializer):
+    file = serializers.FileField()
+
+    class Meta:
+        fields = ['file']
+
+
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User

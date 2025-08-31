@@ -5,7 +5,7 @@ from django.contrib.auth.models import Group, User
 from rest_framework import permissions, viewsets
 from Tracker.models import *
 # from serializers import *
-from .serializers import GroupSerializer, UserSerializer, TransactionSubtypeSerializer, TransactionSerializer, TransactionTypeSerializer
+from .serializers import GroupSerializer, UserSerializer, TransactionSubtypeSerializer, TransactionSerializer, TransactionTypeSerializer, CSVUploadSerializer
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -15,28 +15,24 @@ import io
 import csv
 
 class CSVUploadView(APIView):
+    serializer_class = CSVUploadSerializer
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, *args, **kwargs):
-        csv_file = request.FILES.get("file")
-        if not csv_file:
-            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+        if not request.user.is_authenticated:
+            return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
 
-        if not csv_file.name.endswith(".csv"):
-            return Response({"error": "File must be a CSV"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = CSVUploadSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            data = csv_file.read().decode("utf-8")
-        except UnicodeDecodeError:
-            return Response({"error": "Could not decode file, expected UTF-8"}, status=status.HTTP_400_BAD_REQUEST)
+        csv_file = serializer.validated_data["file"]
+        data = csv_file.read().decode("utf-8")
+        io_string = io.StringIO(data)
+        reader = csv.DictReader(io_string)
 
         io_string = io.StringIO(data)
         reader = csv.DictReader(io_string)  # use header row for mapping
-
-        # # validate required columns
-        # required_columns = {"name", "age", "email"}
-        # if not required_columns.issubset(reader.fieldnames):
-        #     return Response({"error": f"CSV must contain columns: {required_columns}"}, status=status.HTTP_400_BAD_REQUEST)
 
         # process rows
         created_count = 0
@@ -44,6 +40,7 @@ class CSVUploadView(APIView):
         next(reader)  # skip header row
         for row in reader:
             Transaction.objects.create(
+                user=request.user,
                 created_at=row[0],
                 transaction_subtype=row[1],
                 amount=row[2],
