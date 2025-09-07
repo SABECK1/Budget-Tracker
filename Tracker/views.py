@@ -19,16 +19,20 @@ class CSVUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def get_transaction_subtype(self, is_stock: bool, amount: float):
-        if not is_stock:  # ISIN empty
-            if amount < 0:
-                return TransactionSubType.objects.get(name="Outflow") # Regular expense
-            else:
-                return TransactionSubType.objects.get(name="Inflow") # Regular income
-        else:  # ISIN present
-            if amount < 0:
-                return TransactionSubType.objects.get(name="Buy") # Savings for stocks
-            else:
-                return TransactionSubType.objects.get(name="Sell") # Income from Stocks
+        try:
+            if not is_stock:  # ISIN empty
+                if amount < 0:
+                    return TransactionSubType.objects.get(name="Outflow") # Regular expense
+                else:
+                    return TransactionSubType.objects.get(name="Inflow") # Regular income
+            else:  # ISIN present
+                if amount < 0:
+                    return TransactionSubType.objects.get(name="Buy") # Savings for stocks
+                else:
+                    return TransactionSubType.objects.get(name="Sell") # Income from Stocks
+        except TransactionSubType.DoesNotExist:
+            # Fallback to "Not assigned" subtype if specific ones don't exist
+            return TransactionSubType.objects.get(name="Not assigned")
 
     def post(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -169,4 +173,3 @@ def register(request):
     else:
         errors = form.errors.as_json()
         return JsonResponse({'error': errors}, status=400)
- 

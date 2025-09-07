@@ -28,13 +28,14 @@ class TransactionTypeSerializer(serializers.HyperlinkedModelSerializer):
         model = models.TransactionType
         fields = ['url', 'id', 'name', 'description', 'expense_factor']
 
-class TransactionSubtypeSerializer(serializers.HyperlinkedModelSerializer):
+class TransactionSubtypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.TransactionSubType
-        fields = ['transaction_type','name','description']
+        fields = ['id', 'transaction_type','name','description']
 
 class TransactionSerializer(serializers.HyperlinkedModelSerializer):
+    transaction_subtype = TransactionSubtypeSerializer()
+
     class Meta:
         model = models.Transaction
-        fields = ['transaction_subtype','amount','created_at','note']
-
+        fields = ['id', 'transaction_subtype', 'amount', 'created_at', 'note', 'isin', 'quantity', 'fee', 'tax']
