@@ -34,7 +34,9 @@ class TransactionSubtypeSerializer(serializers.ModelSerializer):
         fields = ['id', 'transaction_type','name','description']
 
 class TransactionSerializer(serializers.HyperlinkedModelSerializer):
-    transaction_subtype = TransactionSubtypeSerializer()
+    transaction_subtype = serializers.PrimaryKeyRelatedField(
+        queryset=models.TransactionSubType.objects.all()
+    )
 
     class Meta:
         model = models.Transaction

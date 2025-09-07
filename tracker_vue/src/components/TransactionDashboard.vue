@@ -4,6 +4,7 @@ import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Card from "primevue/card";
 import axios from "axios";
+import Cookies from 'js-cookie';
 
 axios.defaults.xsrfCookieName = "csrftoken";
 axios.defaults.xsrfHeaderName = "X-CSRFToken";
@@ -16,6 +17,16 @@ const transactions = ref([]);
 const transactionSubtypes = ref([]);
 const loading = ref(true);
 const expandedRows = ref([]);
+const editingTransaction = ref(null);
+const editForm = ref({
+    transaction_subtype: null,
+    amount: '',
+    note: '',
+    isin: '',
+    quantity: '',
+    fee: '',
+    tax: ''
+});
 
 // Fetch data on mount
 onMounted(async () => {
@@ -49,16 +60,23 @@ const totalTaxes = computed(() => {
     return transactions.value.reduce((sum, t) => sum + parseFloat(t.tax || 0), 0);
 });
 
+// Get subtype object by ID
+const getSubtypeById = (id) => {
+    return transactionSubtypes.value.find(subtype => subtype.id === id);
+};
+
 // Group transactions by subtype
 const transactionsBySubtype = computed(() => {
     const grouped = {};
 
     transactions.value.forEach(transaction => {
-        const subtype = transaction.transaction_subtype;
-        const subtypeId = subtype.id;
+        const subtypeId = transaction.transaction_subtype;
+        const subtypeObj = getSubtypeById(subtypeId);
+        if (!subtypeObj) return;
+
         if (!grouped[subtypeId]) {
             grouped[subtypeId] = {
-                subtype: subtype,
+                subtype: subtypeObj,
                 transactions: [],
                 count: 0,
                 totalAmount: 0,
@@ -88,6 +106,68 @@ const formatCurrency = (amount) => {
 // Format date
 const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString();
+};
+
+// Edit functions
+const startEdit = (transaction) => {
+    editingTransaction.value = transaction.id;
+    editForm.value = {
+        transaction_subtype: transaction.transaction_subtype,
+        amount: transaction.amount,
+        note: transaction.note,
+        isin: transaction.isin,
+        quantity: transaction.quantity,
+        fee: transaction.fee,
+        tax: transaction.tax
+    };
+};
+
+const cancelEdit = () => {
+    editingTransaction.value = null;
+    editForm.value = {
+        transaction_subtype: null,
+        amount: '',
+        note: '',
+        isin: '',
+        quantity: '',
+        fee: '',
+        tax: ''
+    };
+};
+
+const saveEdit = async (transaction) => {
+    try {
+        const response = await axios.patch(`${baseurl}/transactions/${transaction.id}/`, {
+            transaction_subtype: editForm.value.transaction_subtype,
+            amount: editForm.value.amount,
+            note: editForm.value.note,
+            isin: editForm.value.isin,
+            quantity: editForm.value.quantity,
+            fee: editForm.value.fee,
+            tax: editForm.value.tax
+        }, {
+            headers: {
+                'X-CSRFToken': Cookies.get('csrftoken'),
+            },
+            withCredentials: true,
+        });
+
+        // Update the transaction in the local state
+        const index = transactions.value.findIndex(t => t.id === transaction.id);
+        if (index !== -1) {
+            transactions.value[index] = response.data;
+        }
+
+        cancelEdit();
+
+        // Refresh the data to update the grouped view
+        const transactionsRes = await axios.get(`${baseurl}/transactions/`);
+        transactions.value = transactionsRes.data;
+
+    } catch (err) {
+        console.error("Error updating transaction:", err);
+        alert("Error updating transaction. Please try again.");
+    }
 };
 </script>
 
@@ -173,22 +253,115 @@ const formatDate = (dateString) => {
                                         {{ formatDate(slotProps.data.created_at) }}
                                     </template>
                                 </Column>
-                                <Column field="amount" header="Amount" sortable>
+                                <Column header="Transaction Subtype">
                                     <template #body="slotProps">
-                                        {{ formatCurrency(slotProps.data.amount) }}
+                                        <select
+                                            v-if="editingTransaction === slotProps.data.id"
+                                            v-model="editForm.transaction_subtype"
+                                            class="form-control"
+                                        >
+                                            <option
+                                                v-for="subtype in transactionSubtypes"
+                                                :key="subtype.id"
+                                                :value="subtype.id"
+                                            >
+                                                {{ subtype.name }}
+                                            </option>
+                                        </select>
+                                        <span v-else>{{ getSubtypeById(slotProps.data.transaction_subtype)?.name || 'Unknown' }}</span>
                                     </template>
                                 </Column>
-                                <Column field="note" header="Note" />
-                                <Column field="isin" header="ISIN" />
-                                <Column field="quantity" header="Quantity" />
+                                <Column field="amount" header="Amount" sortable>
+                                    <template #body="slotProps">
+                                        <input
+                                            v-if="editingTransaction === slotProps.data.id"
+                                            v-model="editForm.amount"
+                                            type="number"
+                                            step="0.01"
+                                            class="form-control"
+                                        />
+                                        <span v-else>{{ formatCurrency(slotProps.data.amount) }}</span>
+                                    </template>
+                                </Column>
+                                <Column field="note" header="Note">
+                                    <template #body="slotProps">
+                                        <input
+                                            v-if="editingTransaction === slotProps.data.id"
+                                            v-model="editForm.note"
+                                            class="form-control"
+                                        />
+                                        <span v-else>{{ slotProps.data.note || '-' }}</span>
+                                    </template>
+                                </Column>
+                                <Column field="isin" header="ISIN">
+                                    <template #body="slotProps">
+                                        <input
+                                            v-if="editingTransaction === slotProps.data.id"
+                                            v-model="editForm.isin"
+                                            class="form-control"
+                                        />
+                                        <span v-else>{{ slotProps.data.isin || '-' }}</span>
+                                    </template>
+                                </Column>
+                                <Column field="quantity" header="Quantity">
+                                    <template #body="slotProps">
+                                        <input
+                                            v-if="editingTransaction === slotProps.data.id"
+                                            v-model="editForm.quantity"
+                                            type="number"
+                                            step="0.01"
+                                            class="form-control"
+                                        />
+                                        <span v-else>{{ slotProps.data.quantity || '-' }}</span>
+                                    </template>
+                                </Column>
                                 <Column field="fee" header="Fee">
                                     <template #body="slotProps">
-                                        {{ slotProps.data.fee ? formatCurrency(slotProps.data.fee) : '-' }}
+                                        <input
+                                            v-if="editingTransaction === slotProps.data.id"
+                                            v-model="editForm.fee"
+                                            type="number"
+                                            step="0.01"
+                                            class="form-control"
+                                        />
+                                        <span v-else>{{ slotProps.data.fee ? formatCurrency(slotProps.data.fee) : '-' }}</span>
                                     </template>
                                 </Column>
                                 <Column field="tax" header="Tax">
                                     <template #body="slotProps">
-                                        {{ slotProps.data.tax ? formatCurrency(slotProps.data.tax) : '-' }}
+                                        <input
+                                            v-if="editingTransaction === slotProps.data.id"
+                                            v-model="editForm.tax"
+                                            type="number"
+                                            step="0.01"
+                                            class="form-control"
+                                        />
+                                        <span v-else>{{ slotProps.data.tax ? formatCurrency(slotProps.data.tax) : '-' }}</span>
+                                    </template>
+                                </Column>
+                                <Column header="Actions">
+                                    <template #body="slotProps">
+                                        <div v-if="editingTransaction === slotProps.data.id" class="d-flex gap-2">
+                                            <button
+                                                @click="saveEdit(slotProps.data)"
+                                                class="btn btn-success btn-sm"
+                                            >
+                                                Save
+                                            </button>
+                                            <button
+                                                @click="cancelEdit"
+                                                class="btn btn-secondary btn-sm"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                        <button
+                                            v-else
+                                            @click="startEdit(slotProps.data)"
+                                            class="btn btn-primary btn-sm"
+                                        >
+                                            Edit
+                                        </button>
                                     </template>
                                 </Column>
                             </DataTable>
