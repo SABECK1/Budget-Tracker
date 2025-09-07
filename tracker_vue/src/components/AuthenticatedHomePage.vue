@@ -1,6 +1,5 @@
 <script	setup>
 import TransactionDashboard from './TransactionDashboard.vue';
-import CSVUpload from './CSVUpload.vue';
 </script>
 
 <template>
@@ -10,12 +9,6 @@ import CSVUpload from './CSVUpload.vue';
 
         <!-- Transaction Dashboard -->
         <TransactionDashboard />
-
-        <!-- CSV Upload Section -->
-        <div class="mt-6">
-            <h3 class="text-center mb-4">Import Transactions</h3>
-            <CSVUpload />
-        </div>
     </div>
 </template>
 <script>
