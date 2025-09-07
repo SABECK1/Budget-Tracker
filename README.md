@@ -11,13 +11,6 @@ A comprehensive personal finance management application built with Django REST F
 - **Category Organization**: Hierarchical transaction types and subtypes
 - **Real-time Updates**: Automatic data refresh after operations
 
-### Transaction Categories
-- **Income**: Salary, Freelance, Business Income, Investment Returns, Rental Income
-- **Expense**: Food & Dining, Transportation, Housing, Utilities, Healthcare, Entertainment, Shopping, Education, Travel, Insurance, Personal Care
-- **Investment**: Stocks, Bonds, Mutual Funds, ETFs, Cryptocurrency, Real Estate, Retirement Accounts
-- **Transfer**: Bank Transfers, Credit Card Payments, Account Transfers, Wire Transfers
-- **Not Assigned**: Default category for uncategorized transactions
-
 ## 🛠️ Tech Stack
 
 ### Backend
@@ -102,13 +95,6 @@ A comprehensive personal finance management application built with Django REST F
    ```
 
 ## 🚀 Usage
-
-### Accessing the Application
-
-- **Frontend**: http://localhost:8080
-- **Backend API**: http://localhost:8000
-- **Django Admin**: http://localhost:8000/admin
-
 ### CSV Import Format
 
 This project is made for use with PYTR. You should use the standard transactions.csv file you get by using dl_docs.
