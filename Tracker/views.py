@@ -54,16 +54,20 @@ class CSVUploadView(APIView):
         for row in reader:
             if not row:  # skip empty lines
                 continue
+            # Check if ISIN is present and not empty to determine if it's a stock transaction
+            is_stock = bool(row[4] if len(row) > 4 else False)
+            amount = float(row[2]) if row[2] else float(0.0)
+
             Transaction.objects.create(
                 user=request.user,
                 created_at=row[0],
-                transaction_subtype = self.get_transaction_subtype(True if len(row) > 4 else False, float(row[2]) if row[2] else float(0.0)),
-                amount=float(row[2]) if row[2] else float(0.0),
-                note=row[3] if row[3] else "",
-                isin=row[4] if row[4] else "",
-                quantity=float(row[5]) if row[5] else float(0.0),
-                fee=float(row[6]) if row[6] else float(0.0),
-                tax=float(row[7]) if row[7] else float(0.0),
+                transaction_subtype=self.get_transaction_subtype(is_stock, amount),
+                amount=amount,
+                note=row[3] if len(row) > 3 and row[3] else "",
+                isin=row[4] if len(row) > 4 and row[4] else "",
+                quantity=float(row[5]) if len(row) > 5 and row[5] else float(0.0),
+                fee=float(row[6]) if len(row) > 6 and row[6] else float(0.0),
+                tax=float(row[7]) if len(row) > 7 and row[7] else float(0.0),
             )
             created_count += 1
 
