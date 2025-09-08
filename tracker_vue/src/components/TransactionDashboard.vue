@@ -30,6 +30,10 @@ const editForm = ref({
     tax: ''
 });
 
+// Lazy loading state
+const expandedData = ref(new Map()); // Cache for expanded row data
+const expandedLoading = ref(new Set()); // Track which rows are loading
+
 // CSV Upload state
 const csvUploadResult = ref(null);
 const csvUploading = ref(false);
@@ -37,19 +41,68 @@ const csvUploading = ref(false);
 // Fetch data on mount
 onMounted(async () => {
     try {
-        const [transactionsRes, subtypesRes] = await Promise.all([
-            axios.get(`${baseurl}/transactions/`),
-            axios.get(`${baseurl}/transactionsubtypes/`)
-        ]);
-
-        transactions.value = transactionsRes.data;
+        // Only load subtypes initially, not all transactions
+        const subtypesRes = await axios.get(`${baseurl}/transactionsubtypes/`);
         transactionSubtypes.value = subtypesRes.data;
+
+        // Load transaction counts by subtype for the summary table
+        await loadTransactionCounts();
     } catch (err) {
         console.error("Error fetching data:", err);
     } finally {
         loading.value = false;
     }
 });
+
+// Load transaction counts for summary view
+const loadTransactionCounts = async () => {
+    try {
+        const response = await axios.get(`${baseurl}/transactions/`);
+        transactions.value = response.data;
+    } catch (err) {
+        console.error("Error loading transaction counts:", err);
+    }
+};
+
+// Lazy load transactions for a specific subtype
+const loadTransactionsForSubtype = async (subtypeId) => {
+    if (expandedData.value.has(subtypeId)) {
+        return expandedData.value.get(subtypeId);
+    }
+
+    expandedLoading.value.add(subtypeId);
+
+    try {
+        const response = await axios.get(`${baseurl}/transactions/?transaction_subtype=${subtypeId}`);
+        const data = {
+            transactions: response.data,
+            pagination: {
+                page: 1,
+                limit: 50,
+                total: response.data.length
+            }
+        };
+        expandedData.value.set(subtypeId, data);
+        return data;
+    } catch (err) {
+        console.error("Error loading transactions for subtype:", err);
+        return { transactions: [], pagination: { page: 1, limit: 50, total: 0 } };
+    } finally {
+        expandedLoading.value.delete(subtypeId);
+    }
+};
+
+// Handle row expansion
+const onRowExpand = async (event) => {
+    const subtypeId = event.data.subtype.id;
+    await loadTransactionsForSubtype(subtypeId);
+};
+
+// Handle row collapse
+const onRowCollapse = (event) => {
+    // Optional: could clear cache here if memory is a concern
+    // expandedData.value.delete(event.data.subtype.id);
+};
 
 // Computed properties for metrics
 const totalTransactions = computed(() => transactions.value.length);
@@ -164,6 +217,17 @@ const saveEdit = async (transaction) => {
             transactions.value[index] = response.data;
         }
 
+        // Refresh cached data for the affected subtype
+        const subtypeId = response.data.transaction_subtype;
+        if (expandedData.value.has(subtypeId)) {
+            expandedData.value.delete(subtypeId);
+        }
+
+        // If the subtype changed, also refresh the old subtype cache
+        if (transaction.transaction_subtype !== subtypeId && expandedData.value.has(transaction.transaction_subtype)) {
+            expandedData.value.delete(transaction.transaction_subtype);
+        }
+
         cancelEdit();
 
         // Refresh the data to update the grouped view
@@ -197,6 +261,9 @@ const onCsvUpload = async (event) => {
         });
 
         csvUploadResult.value = `Success: ${response.data.message || 'CSV uploaded successfully'}`;
+
+        // Clear all cached expanded data since new transactions may have been added
+        expandedData.value.clear();
 
         // Refresh transactions data after successful upload
         const transactionsRes = await axios.get(`${baseurl}/transactions/`);
@@ -262,6 +329,8 @@ const onCsvUpload = async (event) => {
                     tableStyle="min-width: 50rem"
                     stripedRows
                     showGridlines
+                    @row-expand="onRowExpand"
+                    @row-collapse="onRowCollapse"
                 >
                     <Column field="subtype.name" header="Subtype" sortable />
                     <Column field="count" header="Transaction Count" sortable />
@@ -286,7 +355,20 @@ const onCsvUpload = async (event) => {
                     <template #expansion="slotProps">
                         <div class="p-3">
                             <h5>Individual Transactions</h5>
-                            <DataTable :value="slotProps.data.transactions" responsiveLayout="scroll">
+                            <div v-if="expandedLoading.has(slotProps.data.subtype.id)" class="text-center p-4">
+                                <ProgressSpinner />
+                                <p class="mt-2 text-primary">Loading transactions...</p>
+                            </div>
+                            <DataTable
+                                v-else
+                                :value="expandedData.get(slotProps.data.subtype.id)?.transactions || []"
+                                responsiveLayout="scroll"
+                                :paginator="true"
+                                :rows="50"
+                                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                                :rowsPerPageOptions="[25, 50, 100]"
+                                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} transactions"
+                            >
                                 <Column field="created_at" header="Date" sortable>
                                     <template #body="slotProps">
                                         {{ formatDate(slotProps.data.created_at) }}

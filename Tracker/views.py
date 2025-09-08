@@ -103,7 +103,14 @@ class TransactionViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Transaction.objects.filter(user=self.request.user).order_by('created_at')
+        queryset = Transaction.objects.filter(user=self.request.user).order_by('created_at')
+
+        # Filter by transaction_subtype if provided
+        subtype_id = self.request.query_params.get('transaction_subtype', None)
+        if subtype_id is not None:
+            queryset = queryset.filter(transaction_subtype=subtype_id)
+
+        return queryset
 
 
 class TransactionTypeViewSet(viewsets.ModelViewSet):
