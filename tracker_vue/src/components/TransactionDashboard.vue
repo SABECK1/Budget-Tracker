@@ -37,6 +37,7 @@ const expandedLoading = ref(new Set()); // Track which rows are loading
 // CSV Upload state
 const csvUploadResult = ref(null);
 const csvUploading = ref(false);
+const fileUploadRef = ref(null);
 
 // Fetch data on mount
 onMounted(async () => {
@@ -262,6 +263,11 @@ const onCsvUpload = async (event) => {
 
         csvUploadResult.value = `Success: ${response.data.message || 'CSV uploaded successfully'}`;
 
+        // Clear the uploaded files from the FileUpload component
+        if (fileUploadRef.value) {
+            fileUploadRef.value.clear();
+        }
+
         // Clear all cached expanded data since new transactions may have been added
         expandedData.value.clear();
 
@@ -281,37 +287,85 @@ const onCsvUpload = async (event) => {
     <div class="p-4">
         <h2 class="text-center mb-4">Transaction Dashboard</h2>
 
-        <!-- Metrics Cards -->
-        <div class="grid mb-4">
-            <div class="col-12 md:col-3">
-                <Card>
-                    <template #title>Total Transactions</template>
-                    <template #content>
-                        <div class="text-3xl font-bold text-primary">{{ totalTransactions }}</div>
-                    </template>
-                </Card>
+        <!-- Top Section Layout -->
+        <div class="dashboard-top mb-4">
+            <!-- Metrics Cards (Left Side - 3/4 width) -->
+            <div class="metrics-section">
+                <div class="grid">
+                    <div class="col-12 md:col-3">
+                        <Card>
+                            <template #title>Total Transactions</template>
+                            <template #content>
+                                <div class="text-3xl font-bold text-primary">{{ totalTransactions }}</div>
+                            </template>
+                        </Card>
+                    </div>
+                    <div class="col-12 md:col-3">
+                        <Card>
+                            <template #title>Total Amount</template>
+                            <template #content>
+                                <div class="text-3xl font-bold text-green-600">{{ formatCurrency(totalAmount) }}</div>
+                            </template>
+                        </Card>
+                    </div>
+                    <div class="col-12 md:col-3">
+                        <Card>
+                            <template #title>Total Fees</template>
+                            <template #content>
+                                <div class="text-3xl font-bold text-red-600">{{ formatCurrency(totalFees) }}</div>
+                            </template>
+                        </Card>
+                    </div>
+                    <div class="col-12 md:col-3">
+                        <Card>
+                            <template #title>Total Taxes</template>
+                            <template #content>
+                                <div class="text-3xl font-bold text-orange-600">{{ formatCurrency(totalTaxes) }}</div>
+                            </template>
+                        </Card>
+                    </div>
+                </div>
             </div>
-            <div class="col-12 md:col-3">
+
+            <!-- CSV Upload Section (Right Side - 1/4 width) -->
+            <div class="csv-upload-section">
                 <Card>
-                    <template #title>Total Amount</template>
+                    <template #title>Import CSV</template>
                     <template #content>
-                        <div class="text-3xl font-bold text-green-600">{{ formatCurrency(totalAmount) }}</div>
-                    </template>
-                </Card>
-            </div>
-            <div class="col-12 md:col-3">
-                <Card>
-                    <template #title>Total Fees</template>
-                    <template #content>
-                        <div class="text-3xl font-bold text-red-600">{{ formatCurrency(totalFees) }}</div>
-                    </template>
-                </Card>
-            </div>
-            <div class="col-12 md:col-3">
-                <Card>
-                    <template #title>Total Taxes</template>
-                    <template #content>
-                        <div class="text-3xl font-bold text-orange-600">{{ formatCurrency(totalTaxes) }}</div>
+                        <div class="p-2">
+                            <FileUpload
+                                ref="fileUploadRef"
+                                name="file"
+                                url="/api/upload-csv/"
+                                accept=".csv"
+                                :withCredentials="true"
+                                :customUpload="true"
+                                @uploader="onCsvUpload"
+                                :disabled="csvUploading"
+                                class="small-upload"
+                            >
+                                <template #empty>
+                                    <div class="text-center p-1">
+                                        <i class="pi pi-upload text-xl text-primary mb-1"></i>
+                                        <p class="text-xs">Drop CSV</p>
+                                    </div>
+                                </template>
+                            </FileUpload>
+
+                            <div v-if="csvUploading" class="text-center my-1">
+                                <ProgressSpinner class="small-spinner" />
+                                <p class="text-xs mt-1 text-primary">Uploading...</p>
+                            </div>
+
+                            <div v-if="csvUploadResult && !csvUploading" class="mt-1">
+                                <div
+                                    :class="csvUploadResult.startsWith('Success') ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'"
+                                    class="border-l-4 p-1 rounded text-xs"
+                                >
+                                    <p class="font-semibold text-xs">{{ csvUploadResult.startsWith('Success') ? '✓' : '✗' }}</p>
+                                </div>
+                            </div>
+                        </div>
                     </template>
                 </Card>
             </div>
@@ -492,47 +546,7 @@ const onCsvUpload = async (event) => {
             </template>
         </Card>
 
-        <!-- CSV Upload Section -->
-        <Card class="mb-4">
-            <template #title>Import Transactions</template>
-            <template #content>
-                <div class="p-4">
-                    <FileUpload
-                        name="file"
-                        url="/api/upload-csv/"
-                        accept=".csv"
-                        :withCredentials="true"
-                        :customUpload="true"
-                        @uploader="onCsvUpload"
-                        :disabled="csvUploading"
-                        
-                    >
-                        <template #empty>
-                            <div class="text-center p-4">
-                                <i class="pi pi-upload text-4xl text-primary mb-3"></i>
-                                <p class="text-lg">Drag and drop a CSV file here</p>
-                                <p class="text-sm text-gray-600">Or click to browse and select a file</p>
-                            </div>
-                        </template>
-                    </FileUpload>
 
-                    <div v-if="csvUploading" class="text-center mb-3">
-                        <ProgressSpinner />
-                        <p class="mt-2 text-primary">Uploading CSV file...</p>
-                    </div>
-
-                    <div v-if="csvUploadResult && !csvUploading" class="mt-3">
-                        <div
-                            :class="csvUploadResult.startsWith('Success') ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'"
-                            class="border-l-4 p-4 rounded"
-                        >
-                            <p class="font-semibold">{{ csvUploadResult.startsWith('Success') ? 'Success!' : 'Error!' }}</p>
-                            <pre class="mt-2 whitespace-pre-wrap">{{ csvUploadResult }}</pre>
-                        </div>
-                    </div>
-                </div>
-            </template>
-        </Card>
     </div>
 </template>
 
@@ -556,6 +570,49 @@ export default {
 @media (min-width: 768px) {
     .md\:col-3 {
         grid-column: span 3;
+    }
+}
+
+/* Top section layout */
+.dashboard-top {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    gap: 1rem;
+    align-items: start;
+}
+
+.metrics-section {
+    grid-column: 1;
+}
+
+.csv-upload-section {
+    grid-column: 2;
+    /* max-width: 300px; */
+}
+
+.small-upload :deep(.p-fileupload-content) {
+    padding: 0.5rem !important;
+}
+
+.small-upload :deep(.p-fileupload-buttonbar) {
+    padding: 0.25rem !important;
+}
+
+.small-spinner :deep(.p-progress-spinner) {
+    width: 24px !important;
+    height: 24px !important;
+}
+
+@media (max-width: 1024px) {
+    .dashboard-top {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .csv-upload-section {
+        max-width: none;
+        grid-column: 1;
+        grid-row: 2;
     }
 }
 </style>
