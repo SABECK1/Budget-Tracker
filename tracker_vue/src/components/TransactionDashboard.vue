@@ -27,7 +27,8 @@ const editForm = ref({
     isin: '',
     quantity: '',
     fee: '',
-    tax: ''
+    tax: '',
+    applyToAllWithSameNote: false
 });
 
 // Lazy loading state
@@ -177,7 +178,8 @@ const startEdit = (transaction) => {
         isin: transaction.isin,
         quantity: transaction.quantity,
         fee: transaction.fee,
-        tax: transaction.tax
+        tax: transaction.tax,
+        applyToAllWithSameNote: false
     };
 };
 
@@ -190,12 +192,27 @@ const cancelEdit = () => {
         isin: '',
         quantity: '',
         fee: '',
-        tax: ''
+        tax: '',
+        applyToAllWithSameNote: false
     };
 };
 
 const saveEdit = async (transaction) => {
     try {
+        // If applying to all with same note, do bulk update first
+        if (editForm.value.applyToAllWithSameNote && editForm.value.note) {
+            await axios.patch(`${baseurl}/transactions/bulk_update_by_note/`, {
+                note: editForm.value.note,
+                transaction_subtype: editForm.value.transaction_subtype
+            }, {
+                headers: {
+                    'X-CSRFToken': Cookies.get('csrftoken'),
+                },
+                withCredentials: true,
+            });
+        }
+
+        // Update the individual transaction
         const response = await axios.patch(`${baseurl}/transactions/${transaction.id}/`, {
             transaction_subtype: editForm.value.transaction_subtype,
             amount: editForm.value.amount,
@@ -217,16 +234,8 @@ const saveEdit = async (transaction) => {
             transactions.value[index] = response.data;
         }
 
-        // Refresh cached data for the affected subtype
-        const subtypeId = response.data.transaction_subtype;
-        if (expandedData.value.has(subtypeId)) {
-            expandedData.value.delete(subtypeId);
-        }
-
-        // If the subtype changed, also refresh the old subtype cache
-        if (transaction.transaction_subtype !== subtypeId && expandedData.value.has(transaction.transaction_subtype)) {
-            expandedData.value.delete(transaction.transaction_subtype);
-        }
+        // Clear all cached data since bulk update may have affected multiple subtypes
+        expandedData.value.clear();
 
         cancelEdit();
 
@@ -462,19 +471,30 @@ const onCsvUpload = async (event) => {
                                 </Column>
                                 <Column header="Actions">
                                     <template #body="slotProps">
-                                        <div v-if="editingTransaction === slotProps.data.id" class="d-flex gap-2">
-                                            <button
-                                                @click="saveEdit(slotProps.data)"
-                                                class="btn btn-success btn-sm"
-                                            >
-                                                Save
-                                            </button>
-                                            <button
-                                                @click="cancelEdit"
-                                                class="btn btn-secondary btn-sm"
-                                            >
-                                                Cancel
-                                            </button>
+                                        <div v-if="editingTransaction === slotProps.data.id">
+                                            <div class="mb-2">
+                                                <label>
+                                                    <input
+                                                        type="checkbox"
+                                                        v-model="editForm.applyToAllWithSameNote"
+                                                    />
+                                                    Apply to all transactions with the same note
+                                                </label>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button
+                                                    @click="saveEdit(slotProps.data)"
+                                                    class="btn btn-success btn-sm"
+                                                >
+                                                    Save
+                                                </button>
+                                                <button
+                                                    @click="cancelEdit"
+                                                    class="btn btn-secondary btn-sm"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
                                         </div>
                                         <button
                                             v-else

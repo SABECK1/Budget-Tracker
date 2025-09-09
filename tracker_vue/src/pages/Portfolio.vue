@@ -1,4 +1,5 @@
 <template>
+  <AppNavigation />
   <div class="portfolio-page">
     <h1>Stock Portfolio</h1>
     <div class="portfolio-insights">
@@ -9,6 +10,10 @@
       <div class="insight-card">
         <h3>Total Gain/Loss</h3>
         <p>+5.2%</p>
+      </div>
+      <div class="insight-card">
+        <h3>Today's Gain/Loss</h3>
+        <p>+1.8%</p>
       </div>
       <div class="insight-card">
         <h3>Top Performer</h3>
@@ -50,7 +55,7 @@
 </template>
 
 <script setup>
-// Add any necessary imports or logic here
+import AppNavigation from '../components/navigation.vue'
 </script>
 
 <style scoped>

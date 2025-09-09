@@ -3,6 +3,7 @@ from django.shortcuts import render
 # Create your views here.
 from django.contrib.auth.models import Group, User
 from rest_framework import permissions, viewsets
+from rest_framework.decorators import action
 from Tracker.models import *
 # from serializers import *
 from .serializers import GroupSerializer, UserSerializer, TransactionSubtypeSerializer, TransactionSerializer, TransactionTypeSerializer, CSVUploadSerializer
@@ -57,13 +58,26 @@ class CSVUploadView(APIView):
             # Check if ISIN is present and not empty to determine if it's a stock transaction
             is_stock = bool(row[4] if len(row) > 4 else False)
             amount = float(row[2]) if row[2] else float(0.0)
+            note = row[3] if len(row) > 3 and row[3] else ""
+
+            # Default subtype based on amount and ISIN
+            transaction_subtype = self.get_transaction_subtype(is_stock, amount)
+
+            # If note is present, check for existing transaction with same note and use its subtype
+            if note:
+                existing_transaction = Transaction.objects.filter(
+                    user=request.user,
+                    note=note
+                ).exclude(transaction_subtype__isnull=True).first()
+                if existing_transaction:
+                    transaction_subtype = existing_transaction.transaction_subtype
 
             Transaction.objects.create(
                 user=request.user,
                 created_at=row[0],
-                transaction_subtype=self.get_transaction_subtype(is_stock, amount),
+                transaction_subtype=transaction_subtype,
                 amount=amount,
-                note=row[3] if len(row) > 3 and row[3] else "",
+                note=note,
                 isin=row[4] if len(row) > 4 and row[4] else "",
                 quantity=float(row[5]) if len(row) > 5 and row[5] else float(0.0),
                 fee=float(row[6]) if len(row) > 6 and row[6] else float(0.0),
@@ -115,6 +129,27 @@ class TransactionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(transaction_subtype=subtype_id)
 
         return queryset
+
+    @action(detail=False, methods=['patch'])
+    def bulk_update_by_note(self, request):
+        note = request.data.get('note')
+        transaction_subtype_id = request.data.get('transaction_subtype')
+
+        if not note or not transaction_subtype_id:
+            return Response({"error": "Note and transaction_subtype are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            transaction_subtype = TransactionSubType.objects.get(id=transaction_subtype_id)
+        except TransactionSubType.DoesNotExist:
+            return Response({"error": "Invalid transaction_subtype"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update all transactions for the current user with the same note
+        updated_count = Transaction.objects.filter(
+            user=request.user,
+            note=note
+        ).update(transaction_subtype=transaction_subtype)
+
+        return Response({"updated_count": updated_count}, status=status.HTTP_200_OK)
 
 
 class TransactionTypeViewSet(viewsets.ModelViewSet):
