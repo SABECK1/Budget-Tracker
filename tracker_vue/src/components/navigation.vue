@@ -49,9 +49,9 @@ const items = ref([
     command: () => router.push('/')
   },
   {
-    label: 'Link',
-    icon: 'pi pi-link',
-    command: () => router.push('/link')
+    label: 'Portfolio',
+    icon: 'pi pi-chart-line',
+    command: () => router.push('/portfolio')
   },
   {
     label: 'Dropdown',
