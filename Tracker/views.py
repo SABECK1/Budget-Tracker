@@ -61,12 +61,17 @@ class CSVUploadView(APIView):
             amount = float(row[2]) if row[2] else float(0.0)
             note = row[3] if len(row) > 3 and row[3] else ""
 
+            # Default subtype based on amount and ISIN
+            transaction_subtype = self.get_transaction_subtype(is_stock, amount)
+            
             # For stock transactions, check for existing transaction with same ISIN
             # For regular transactions, check for existing transaction with same note
             if is_stock and isin:
+                amount_lookup = 'amount__gt' if amount > 0 else 'amount__lt'
                 existing_transaction = Transaction.objects.filter(
                     user=request.user,
-                    isin=isin
+                    isin=isin,
+                     **{amount_lookup: 0}
                 ).exclude(transaction_subtype__isnull=True).first()
                 if existing_transaction:
                     transaction_subtype = existing_transaction.transaction_subtype
@@ -77,9 +82,6 @@ class CSVUploadView(APIView):
                 ).exclude(transaction_subtype__isnull=True).first()
                 if existing_transaction:
                     transaction_subtype = existing_transaction.transaction_subtype
-            else:
-                # Default subtype based on amount and ISIN
-                transaction_subtype = self.get_transaction_subtype(is_stock, amount)
 
             Transaction.objects.create(
                 user=request.user,
@@ -163,6 +165,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['patch'])
     def bulk_update_by_isin(self, request):
         isin = request.data.get('isin')
+        is_buy = request.data.get('is_buy')
         transaction_subtype_id = request.data.get('transaction_subtype')
 
         if not isin or not transaction_subtype_id:
@@ -174,9 +177,11 @@ class TransactionViewSet(viewsets.ModelViewSet):
             return Response({"error": "Invalid transaction_subtype"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Update all transactions for the current user with the same ISIN
+        amount_lookup = 'amount__gt' if is_buy else 'amount__lt'
         updated_count = Transaction.objects.filter(
             user=request.user,
-            isin=isin
+            isin=isin,
+            **{amount_lookup: 0}
         ).update(transaction_subtype=transaction_subtype)
 
         return Response({"updated_count": updated_count}, status=status.HTTP_200_OK)

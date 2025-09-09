@@ -206,6 +206,7 @@ const saveEdit = async (transaction) => {
                 // For stock transactions, update by ISIN
                 await axios.patch(`${baseurl}/transactions/bulk_update_by_isin/`, {
                     isin: editForm.value.isin,
+                    is_buy: transaction.amount > 0,
                     transaction_subtype: editForm.value.transaction_subtype
                 }, {
                     headers: {
