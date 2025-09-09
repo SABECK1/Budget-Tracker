@@ -199,17 +199,32 @@ const cancelEdit = () => {
 
 const saveEdit = async (transaction) => {
     try {
-        // If applying to all with same note, do bulk update first
-        if (editForm.value.applyToAllWithSameNote && editForm.value.note) {
-            await axios.patch(`${baseurl}/transactions/bulk_update_by_note/`, {
-                note: editForm.value.note,
-                transaction_subtype: editForm.value.transaction_subtype
-            }, {
-                headers: {
-                    'X-CSRFToken': Cookies.get('csrftoken'),
-                },
-                withCredentials: true,
-            });
+        // If applying to all with same note/ISIN, do bulk update first
+        if (editForm.value.applyToAllWithSameNote) {
+            const isStock = editForm.value.isin && editForm.value.isin.trim() !== '';
+            if (isStock && editForm.value.isin) {
+                // For stock transactions, update by ISIN
+                await axios.patch(`${baseurl}/transactions/bulk_update_by_isin/`, {
+                    isin: editForm.value.isin,
+                    transaction_subtype: editForm.value.transaction_subtype
+                }, {
+                    headers: {
+                        'X-CSRFToken': Cookies.get('csrftoken'),
+                    },
+                    withCredentials: true,
+                });
+            } else if (editForm.value.note) {
+                // For regular transactions, update by note
+                await axios.patch(`${baseurl}/transactions/bulk_update_by_note/`, {
+                    note: editForm.value.note,
+                    transaction_subtype: editForm.value.transaction_subtype
+                }, {
+                    headers: {
+                        'X-CSRFToken': Cookies.get('csrftoken'),
+                    },
+                    withCredentials: true,
+                });
+            }
         }
 
         // Update the individual transaction
@@ -478,7 +493,7 @@ const onCsvUpload = async (event) => {
                                                         type="checkbox"
                                                         v-model="editForm.applyToAllWithSameNote"
                                                     />
-                                                    Apply to all transactions with the same note
+                                                    Assign subtype to all transactions with the same {{ editForm.isin ? 'ISIN' : 'note' }}
                                                 </label>
                                             </div>
                                             <div class="d-flex gap-2">

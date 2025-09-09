@@ -56,21 +56,30 @@ class CSVUploadView(APIView):
             if not row:  # skip empty lines
                 continue
             # Check if ISIN is present and not empty to determine if it's a stock transaction
-            is_stock = bool(row[4] if len(row) > 4 else False)
+            isin = row[4] if len(row) > 4 and row[4] else ""
+            is_stock = bool(isin)
             amount = float(row[2]) if row[2] else float(0.0)
             note = row[3] if len(row) > 3 and row[3] else ""
 
-            # Default subtype based on amount and ISIN
-            transaction_subtype = self.get_transaction_subtype(is_stock, amount)
-
-            # If note is present, check for existing transaction with same note and use its subtype
-            if note:
+            # For stock transactions, check for existing transaction with same ISIN
+            # For regular transactions, check for existing transaction with same note
+            if is_stock and isin:
+                existing_transaction = Transaction.objects.filter(
+                    user=request.user,
+                    isin=isin
+                ).exclude(transaction_subtype__isnull=True).first()
+                if existing_transaction:
+                    transaction_subtype = existing_transaction.transaction_subtype
+            elif note:
                 existing_transaction = Transaction.objects.filter(
                     user=request.user,
                     note=note
                 ).exclude(transaction_subtype__isnull=True).first()
                 if existing_transaction:
                     transaction_subtype = existing_transaction.transaction_subtype
+            else:
+                # Default subtype based on amount and ISIN
+                transaction_subtype = self.get_transaction_subtype(is_stock, amount)
 
             Transaction.objects.create(
                 user=request.user,
@@ -147,6 +156,27 @@ class TransactionViewSet(viewsets.ModelViewSet):
         updated_count = Transaction.objects.filter(
             user=request.user,
             note=note
+        ).update(transaction_subtype=transaction_subtype)
+
+        return Response({"updated_count": updated_count}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['patch'])
+    def bulk_update_by_isin(self, request):
+        isin = request.data.get('isin')
+        transaction_subtype_id = request.data.get('transaction_subtype')
+
+        if not isin or not transaction_subtype_id:
+            return Response({"error": "ISIN and transaction_subtype are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            transaction_subtype = TransactionSubType.objects.get(id=transaction_subtype_id)
+        except TransactionSubType.DoesNotExist:
+            return Response({"error": "Invalid transaction_subtype"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update all transactions for the current user with the same ISIN
+        updated_count = Transaction.objects.filter(
+            user=request.user,
+            isin=isin
         ).update(transaction_subtype=transaction_subtype)
 
         return Response({"updated_count": updated_count}, status=status.HTTP_200_OK)

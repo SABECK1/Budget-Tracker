@@ -126,7 +126,7 @@ class CSVUploadTestCase(APITestCase):
         self.assertEqual(sell_transaction.quantity, -10)
 
     def test_csv_upload_automatic_subtype_assignment_by_note(self):
-        """Test that new transactions get subtype from existing transactions with same note"""
+        """Test that new regular transactions get subtype from existing transactions with same note"""
         self.client.login(username='testuser', password='testpass123')
 
         # Create an existing transaction with a specific subtype
@@ -154,6 +154,37 @@ class CSVUploadTestCase(APITestCase):
         # Check that new transaction got the same subtype as existing one
         new_transaction = Transaction.objects.filter(user=self.user, amount=-75.00).first()
         self.assertEqual(new_transaction.transaction_subtype, custom_subtype)
+
+    def test_csv_upload_automatic_subtype_assignment_by_isin(self):
+        """Test that new stock transactions get subtype from existing transactions with same ISIN"""
+        self.client.login(username='testuser', password='testpass123')
+
+        # Create an existing stock transaction with a specific subtype
+        custom_stock_subtype = TransactionSubType.objects.create(
+            transaction_type=self.expense_type,
+            name="Custom Stock Buy"
+        )
+        existing_transaction = Transaction.objects.create(
+            user=self.user,
+            amount=-100.00,
+            isin="US0378331005",
+            note="AAPL Purchase",
+            transaction_subtype=custom_stock_subtype
+        )
+
+        # Upload CSV with stock transaction having same ISIN
+        csv_content = self.create_csv_content([
+            ['Date', 'Description', 'Amount', 'Note', 'ISIN', 'Quantity', 'Fee', 'Tax'],
+            ['2023-01-01', 'New AAPL Purchase', '-200.00', 'Additional AAPL', 'US0378331005', '20', '5.00', '0.00']
+        ])
+        csv_file = SimpleUploadedFile("test.csv", csv_content.encode('utf-8'), content_type="text/csv")
+
+        response = self.client.post('/api/upload-csv/', {'file': csv_file}, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Check that new transaction got the same subtype as existing one
+        new_transaction = Transaction.objects.filter(user=self.user, amount=-200.00).first()
+        self.assertEqual(new_transaction.transaction_subtype, custom_stock_subtype)
 
     def test_csv_upload_default_subtype_when_no_matching_note(self):
         """Test that transactions get default subtype when no matching note exists"""
