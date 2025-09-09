@@ -52,21 +52,6 @@ const items = ref([
     label: 'Portfolio',
     icon: 'pi pi-chart-line',
     command: () => router.push('/portfolio')
-  },
-  {
-    label: 'Dropdown',
-    icon: 'pi pi-bars',
-    items: [
-      { label: 'Action', command: () => console.log('Action clicked') },
-      { label: 'Another Action', command: () => console.log('Another action clicked') },
-      { separator: true },
-      { label: 'Something else here', command: () => console.log('Something else clicked') }
-    ]
-  },
-  {
-    label: 'Disabled',
-    icon: 'pi pi-ban',
-    disabled: true
   }
 ])
 </script>
