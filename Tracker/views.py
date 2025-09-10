@@ -195,15 +195,71 @@ class TransactionTypeViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionTypeSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect
 import json
- 
+
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
 from .forms import CreateUserForm
+from django.db.models import Sum, F
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+
+@ensure_csrf_cookie
+@require_http_methods(['GET'])
+def portfolio_view(request):
+    """
+    Calculate portfolio holdings from transactions.
+    Only show stocks where net quantity > 0 (buys and sells don't cancel out completely).
+    """
+    if not request.user.is_authenticated:
+        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    # Group transactions by ISIN and calculate net quantities
+    holdings = Transaction.objects.filter(
+        user=request.user,
+        isin__isnull=False
+    ).exclude(isin='').values('isin').annotate(
+        net_quantity=Sum(F('quantity') * F('transaction_subtype__transaction_type__expense_factor')),
+        total_invested=Sum(F('amount') * F('transaction_subtype__transaction_type__expense_factor'))
+    ).filter(net_quantity__gt=0)
+
+    # Format the response
+    portfolio_data = []
+    total_value = 0
+
+    for holding in holdings:
+        # Calculate average price from total invested / net quantity
+        net_quantity = holding['net_quantity']
+        total_invested = holding['total_invested'] or 0
+        avg_price = abs(total_invested) / net_quantity if net_quantity > 0 else 0
+
+        # For now, we'll use the average price as current price (in a real app, you'd fetch current prices)
+        current_price = avg_price
+        value = net_quantity * current_price
+        total_value += value
+
+        portfolio_data.append({
+            'isin': holding['isin'],
+            'shares': float(net_quantity),
+            'avg_price': float(avg_price),
+            'current_price': float(current_price),
+            'value': float(value),
+            'total_invested': float(total_invested),
+        })
+
+    return JsonResponse({
+        'holdings': portfolio_data,
+        'total_value': float(total_value),
+        'total_gain_loss': 0,  # Would need current prices to calculate
+        'holdings_count': len(portfolio_data)
+    }, status=200)
  
 @ensure_csrf_cookie
 @require_http_methods(['GET'])
