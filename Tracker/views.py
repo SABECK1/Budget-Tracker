@@ -240,7 +240,7 @@ def portfolio_view(request):
         total_invested=Sum(
             F('amount') * -1
         )
-    ).filter(net_quantity__gt=0)
+    ).filter(net_quantity__gt=0.01)
 
 
     # Format the response
@@ -250,8 +250,8 @@ def portfolio_view(request):
     for holding in holdings:
         # Calculate average price from total invested / net quantity
         net_quantity = holding['net_quantity']
-        total_invested = holding['total_invested'] or 0
-        avg_price = abs(total_invested) / float(net_quantity) if net_quantity > 0 else 0
+        total_invested = abs(holding['total_invested']) or 0
+        avg_price = float(total_invested) / float(net_quantity) if net_quantity > 0 else 0
 
         # For now, we'll use the average price as current price (in a real app, you'd fetch current prices)
         current_price = avg_price
