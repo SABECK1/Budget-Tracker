@@ -53,7 +53,18 @@
               />
             </div>
           </template>
-                    <Column field="symbol" header="Symbol" sortable :showFilterMatchModes="false">
+          <Column field="symbol" header="Symbol" sortable :showFilterMatchModes="false">
+            <template #body="slotProps">
+              <div v-if="slotProps.data.symbol !== 'Not found'" class="symbol-display">
+                {{ slotProps.data.symbol }}
+              </div>
+              <div v-else class="symbol-missing">
+                <span>{{ slotProps.data.symbol }}</span>
+                <button @click="openModal(slotProps.data)" class="enter-symbol-button" title="Enter symbol manually">
+                  <i class="pi pi-plus"></i>
+                </button>
+              </div>
+            </template>
             <template #filter="{ filterCallback }">
               <InputText
                 v-model="filters.symbol.value"
@@ -129,6 +140,21 @@
           <p>No holdings found. Import some stock transactions to see your portfolio.</p>
         </div>
       </div>
+
+      <Dialog v-model:visible="isModalOpen" header="Enter Symbol Manually" modal>
+        <div class="p-field">
+          <label for="symbol-input">Symbol:</label>
+          <InputText id="symbol-input" v-model="selectedHolding.symbol" />
+        </div>
+        <div class="p-field">
+          <label for="name-input">Name:</label>
+          <InputText id="name-input" v-model="selectedHolding.name" />
+        </div>
+        <template #footer>
+          <Button label="Cancel" icon="pi pi-times" class="p-button-text" @click="isModalOpen = false"></Button>
+          <Button label="Save" icon="pi pi-check" class="p-button-primary" @click="saveSymbol"></Button>
+        </template>
+      </Dialog>
     </div>
   </div>
 </template>
@@ -141,6 +167,8 @@ import Cookies from 'js-cookie'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
+import Dialog from 'primevue/dialog'
+import Button from 'primevue/button'
 import { FilterMatchMode } from '@primevue/core/api'
 
 const holdings = ref([])
@@ -150,6 +178,8 @@ const holdingsCount = ref(0)
 const topPerformer = ref('')
 const loading = ref(true)
 const error = ref('')
+const isModalOpen = ref(false)
+const selectedHolding = ref({symbol: '', name: '', isin: ''})
 
 // Filters for DataTable
 const filters = reactive({
@@ -196,6 +226,40 @@ const fetchPortfolio = async () => {
     error.value = 'Failed to load portfolio data. Please try again.'
   } finally {
     loading.value = false
+  }
+}
+
+const openModal = (holding) => {
+  selectedHolding.value = { ...holding }
+  isModalOpen.value = true
+}
+
+const saveSymbol = async () => {
+  if (!selectedHolding.value.symbol.trim()) {
+    alert("Symbol is required")
+    return
+  }
+
+  try {
+    const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/save-symbol/`, {
+      isin: selectedHolding.value.isin,
+      symbol: selectedHolding.value.symbol.trim(),
+      name: selectedHolding.value.name.trim() || ""
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        "X-CSRFToken": Cookies.get('csrftoken'),
+      },
+      withCredentials: true,
+    })
+
+    if (response.status === 200) {
+      isModalOpen.value = false
+      fetchPortfolio() // refresh the portfolio to show the new symbol
+    }
+  } catch (err) {
+    console.error('Error saving symbol:', err)
+    alert("Failed to save symbol. Please try again.")
   }
 }
 
@@ -327,5 +391,40 @@ onMounted(() => {
   background-color: #f8d7da;
   border: 1px solid #f5c6cb;
   border-radius: 4px;
+}
+
+.symbol-missing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.symbol-missing span {
+  color: #dc3545;
+}
+
+.enter-symbol-button {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.enter-symbol-button:hover {
+  background-color: #e9ecef;
+}
+
+.p-field {
+  margin-bottom: 16px;
+}
+
+.p-field label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  color: #495057;
 }
 </style>

@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import re
 import yfinance as yf
+from ..models import UserProvidedSymbol
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36'
@@ -20,15 +21,21 @@ def get_history(symbol):
     url = f'https://www.ls-tc.de/_rpc/json/instrument/chart/dataForInstrument?instrumentId={id}&marketId=1&quotetype=mid&series=history&localeId=2'
     resp = requests.get(url, headers=headers)
     assert resp.status_code == 200, resp.status_code
-    df = pd.DataFrame(resp.json()['series']['history']['data'], columns=['Date', 'Price'])
-    df.Date *= 1000000
-    df.Date = pd.to_datetime(df.Date)
-    df.set_index('Date', inplace=True)
-    return df
+    return resp.json()['series']['history']['data']
 
-def get_symbol_for_isin(isin):
+def get_symbol_for_isin(isin, user=None):
+    # First check if user provided symbol
+    if user:
+        user_symbol = UserProvidedSymbol.objects.filter(user=user, isin=isin).first()
+        if user_symbol:
+            return {
+                "symbol": user_symbol.symbol,
+                "name": user_symbol.name,
+                "source": "user"
+            }
+
+    # Then try Yahoo Finance API
     url = 'https://query1.finance.yahoo.com/v1/finance/search'
-
     params = dict(
         q=isin,
         quotesCount=1,
@@ -42,9 +49,17 @@ def get_symbol_for_isin(isin):
     if 'quotes' in data and len(data['quotes']) > 0:
         return {
             "symbol": data['quotes'][0]['symbol'],
-            "name": data['quotes'][0]['longname'] if 'longname' in data['quotes'][0] else data['quotes'][0]['shortname']
+            "name": data['quotes'][0]['longname'] if 'longname' in data['quotes'][0] else data['quotes'][0]['shortname'],
+            "source": "api"
         }
-    else:
-        return None
+    elif user:
+        return {
+            "symbol": "Not found",
+            "name": "Not found",
+            "not_found": True,
+            "source": "none"
+        }
+    
+    return None
 
-print(get_symbol_for_isin('US5949181045'))  # Example usage
+# print(get_symbol_for_isin('US02079K3059'))

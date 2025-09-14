@@ -260,7 +260,7 @@ def portfolio_view(request):
         total_value += value
 
         # Get symbol for the ISIN
-        symbol_info = get_symbol_for_isin(holding['isin']) or {}
+        symbol_info = get_symbol_for_isin(holding['isin'], request.user) or {}
         symbol = symbol_info.get('symbol', 'Not found')
         name = symbol_info.get('name', 'Not found')
 
@@ -324,6 +324,42 @@ def user(request):
         {'message': 'Not logged in'}, status=401
     )
  
+@require_http_methods(['POST'])
+@ensure_csrf_cookie
+def save_symbol(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        isin = data.get('isin')
+        symbol = data.get('symbol')
+        name = data.get('name', '')
+
+        if not isin or not symbol:
+            return JsonResponse({"error": "ISIN and symbol are required"}, status=400)
+
+        # Check if already exists for this user
+        existing = UserProvidedSymbol.objects.filter(user=request.user, isin=isin).first()
+        if existing:
+            existing.symbol = symbol
+            existing.name = name
+            existing.save()
+        else:
+            UserProvidedSymbol.objects.create(
+                user=request.user,
+                isin=isin,
+                symbol=symbol,
+                name=name
+            )
+
+        return JsonResponse({"message": "Symbol saved successfully"}, status=200)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
 @require_http_methods(['POST'])
 def register(request):
     data = json.loads(request.body.decode('utf-8'))

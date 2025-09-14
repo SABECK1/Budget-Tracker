@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/register', views.register, name='register'),
     path("api/upload-csv/", CSVUploadView.as_view(), name="upload-csv"),
     path("api/portfolio/", views.portfolio_view, name="portfolio"),
+    path("api/save-symbol/", views.save_symbol, name="save_symbol"),
 ]

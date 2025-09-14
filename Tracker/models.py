@@ -28,13 +28,13 @@ class TransactionSubType(models.Model):
         return self.transaction_type.expense_factor
 
 
-class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    phone_number = models.CharField(max_length=20, blank=True)
-    pin = models.CharField(max_length=10, blank=True)
+# class UserProfile(models.Model):
+#     user = models.OneToOneField(User, on_delete=models.CASCADE)
+#     phone_number = models.CharField(max_length=20, blank=True)
+#     pin = models.CharField(max_length=10, blank=True)
 
-    def __str__(self):
-        return f"{self.user.username}'s profile"
+#     def __str__(self):
+#         return f"{self.user.username}'s profile"
 
 
 class Transaction(models.Model):
@@ -52,3 +52,17 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.transaction_subtype} - {self.amount}"
+
+
+class UserProvidedSymbol(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="provided_symbols")
+    isin = models.CharField(max_length=12)
+    symbol = models.CharField(max_length=20)
+    name = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "isin")
+
+    def __str__(self):
+        return f"{self.user} provided {self.symbol} for {self.isin}"
