@@ -1,11 +1,9 @@
-from django.shortcuts import render
 
 # Create your views here.
 from django.contrib.auth.models import Group, User
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
-from Tracker.models import *
-# from serializers import *
+from Tracker.models import TransactionType, TransactionSubType, UserProvidedSymbol
 from .serializers import GroupSerializer, UserSerializer, TransactionSubtypeSerializer, TransactionSerializer, TransactionTypeSerializer, CSVUploadSerializer
 from rest_framework import status
 from rest_framework.views import APIView
@@ -14,21 +12,17 @@ from rest_framework.response import Response
 from .models import Transaction
 import io
 import csv
-from django.shortcuts import render
 from django.http import JsonResponse
-from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect
+from django.views.decorators.csrf import ensure_csrf_cookie
 import json
 
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
 from .forms import CreateUserForm
 from django.db import models
 from django.db.models import Sum, F, Case, When
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from .API.stocks import get_symbol_for_isin
+
+from .stocks import get_symbol_for_isin
 
 
 class CSVUploadView(APIView):
