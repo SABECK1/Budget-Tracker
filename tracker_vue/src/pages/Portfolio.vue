@@ -46,6 +46,11 @@
           <template #header>
             <div class="table-header">
               <h3>Portfolio Holdings</h3>
+              <InputText
+                v-model="filters['global'].value"
+                placeholder="Global Search"
+                class="global-filter"
+              />
             </div>
           </template>
                     <Column field="symbol" header="Symbol" sortable :showFilterMatchModes="false">
@@ -59,7 +64,7 @@
             </template>
           </Column>
 
-          <Column field="name" header="name" sortable :showFilterMatchModes="false">
+          <Column field="name" header="Name" sortable :showFilterMatchModes="false">
             <template #filter="{ filterModel }">
               <InputText
                 v-model="filterModel.value"
@@ -145,6 +150,7 @@ const error = ref('')
 
 // Filters for DataTable
 const filters = reactive({
+  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   name: { value: null, matchMode: FilterMatchMode.CONTAINS },
   symbol: { value: null, matchMode: FilterMatchMode.CONTAINS },
   isin: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -250,6 +256,20 @@ onMounted(() => {
 .table-header h3 {
   margin: 0;
   color: #495057;
+}
+
+.global-filter {
+  width: 250px;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.global-filter:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .holdings-table {
