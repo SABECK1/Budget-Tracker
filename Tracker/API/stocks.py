@@ -44,4 +44,4 @@ def get_symbol_for_isin(isin):
     else:
         return None
 
-print(get_symbol_for_isin('AU000000DRO2'))
+print(get_symbol_for_isin('US02079K3059'))  # Example usage

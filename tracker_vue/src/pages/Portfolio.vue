@@ -33,7 +33,7 @@
           :value="holdings"
           :filters="filters"
           filterDisplay="menu"
-          :globalFilterFields="['isin']"
+          :globalFilterFields="['symbol', 'isin']"
           :paginator="true"
           :rows="10"
           :rowsPerPageOptions="[5, 10, 25, 50]"
@@ -48,6 +48,17 @@
               <h3>Portfolio Holdings</h3>
             </div>
           </template>
+
+          <Column field="symbol" header="Symbol" sortable :showFilterMatchModes="false">
+            <template #filter="{ filterModel }">
+              <InputText
+                v-model="filterModel.value"
+                type="text"
+                placeholder="Search by Symbol"
+                class="p-column-filter"
+              />
+            </template>
+          </Column>
 
           <Column field="isin" header="ISIN" sortable :showFilterMatchModes="false">
             <template #filter="{ filterModel }">
@@ -124,6 +135,7 @@ const error = ref('')
 
 // Filters for DataTable
 const filters = reactive({
+  symbol: { value: null, matchMode: FilterMatchMode.CONTAINS },
   isin: { value: null, matchMode: FilterMatchMode.CONTAINS },
   shares: { value: null, matchMode: FilterMatchMode.BETWEEN },
   avg_price: { value: null, matchMode: FilterMatchMode.BETWEEN },

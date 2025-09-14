@@ -28,6 +28,7 @@ from django.db.models import Sum, F, Case, When
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from .API.stocks import get_symbol_for_isin
 
 
 class CSVUploadView(APIView):
@@ -258,7 +259,11 @@ def portfolio_view(request):
         value = float(net_quantity) * current_price
         total_value += value
 
+        # Get symbol for the ISIN
+        symbol = get_symbol_for_isin(holding['isin']) or "Not found"
+
         portfolio_data.append({
+            'symbol': symbol,
             'isin': holding['isin'],
             'shares': float(net_quantity),
             'avg_price': float(avg_price),
