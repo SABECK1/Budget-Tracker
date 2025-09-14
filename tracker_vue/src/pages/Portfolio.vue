@@ -28,29 +28,16 @@
 
       <div class="portfolio-table">
         <h2>Your Holdings</h2>
-        <DataTable
-          v-if="holdings.length > 0"
-          :value="holdings"
-          :filters="filters"
-          filterDisplay="row"
-          :globalFilterFields="['name','symbol', 'isin']"
-          :paginator="true"
-          :rows="10"
+        <DataTable v-if="holdings.length > 0" :value="holdings" :filters="filters" filterDisplay="row"
+          :globalFilterFields="['name', 'symbol', 'isin']" :paginator="true" :rows="10"
           :rowsPerPageOptions="[5, 10, 25, 50]"
           paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
-          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} holdings"
-          responsiveLayout="scroll"
-          class="holdings-table"
-          sortMode="multiple"
-        >
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} holdings" responsiveLayout="scroll"
+          class="holdings-table" sortMode="multiple">
           <template #header>
             <div class="table-header">
               <h3>Portfolio Holdings</h3>
-              <InputText
-                v-model="filters['global'].value"
-                placeholder="Global Search"
-                class="global-filter"
-              />
+              <InputText v-model="filters['global'].value" placeholder="Global Search" class="global-filter" />
             </div>
           </template>
           <!-- <Column field="symbol" header="Symbol" sortable :showFilterMatchModes="false">
@@ -78,31 +65,33 @@
 
           <Column field="name" header="Name" sortable :showFilterMatchModes="false">
             <template #filter="{ filterCallback }">
-              <InputText
-                v-model="filters.name.value"
-                type="text"
-                placeholder="Search by name"
-                class="p-column-filter"
-                @input="filterCallback()"
-              />
+              <InputText v-model="filters.name.value" type="text" placeholder="Search by name" class="p-column-filter"
+                @input="filterCallback()" />
             </template>
           </Column>
 
           <Column field="isin" header="ISIN" sortable :showFilterMatchModes="false">
             <template #filter="{ filterCallback }">
-              <InputText
-                v-model="filters.isin.value"
-                type="text"
-                placeholder="Search by ISIN"
-                class="p-column-filter"
-                @input="filterCallback()"
-              />
+              <InputText v-model="filters.isin.value" type="text" placeholder="Search by ISIN" class="p-column-filter"
+                @input="filterCallback()" />
             </template>
           </Column>
 
           <Column field="shares" header="Shares" sortable dataType="numeric">
             <template #body="slotProps">
-              {{ slotProps.data.shares.toFixed(2) }}
+              <div class="shares-display" v-if="editingIndex !== slotProps.index">
+                <span>{{ slotProps.data.shares.toFixed(2) }}</span>
+                <Button icon="pi pi-pencil" @click="startEdit(slotProps.data, slotProps.index)"
+                  class="p-button-rounded p-button-text p-button-sm edit-button" title="Edit shares" />
+              </div>
+              <div v-else class="shares-editor">
+                <InputNumber v-model="editingShares" mode="decimal" :min="0" :maxFractionDigits="2"
+                  class="inline-editor" />
+                <Button icon="pi pi-check" @click="saveEdit(slotProps.data)"
+                  class="p-button-rounded p-button-text p-button-sm success-button" title="Save" />
+                <Button icon="pi pi-times" @click="cancelEdit"
+                  class="p-button-rounded p-button-text p-button-sm secondary-button" title="Cancel" />
+              </div>
             </template>
           </Column>
 
@@ -167,6 +156,8 @@ import Cookies from 'js-cookie'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
+import Button from 'primevue/button'
 import { FilterMatchMode } from '@primevue/core/api'
 
 const holdings = ref([])
@@ -176,6 +167,8 @@ const holdingsCount = ref(0)
 const topPerformer = ref('')
 const loading = ref(true)
 const error = ref('')
+const editingIndex = ref(null)
+const editingShares = ref(0)
 // const isModalOpen = ref(false)
 // const selectedHolding = ref({symbol: '', name: '', isin: ''})
 
@@ -263,6 +256,64 @@ const fetchPortfolio = async () => {
 
 // // DataTable handles filtering internally with the filters reactive object
 
+const startEdit = (data, index) => {
+  editingIndex.value = index
+  editingShares.value = data.shares
+  console.log('Editing shares for', data.isin, 'to', editingShares.value, "at index", index)
+}
+
+const saveEdit = async (holding) => {
+  try {
+    const newShares = parseFloat(editingShares.value)
+
+    if (isNaN(newShares)) {
+      alert('Please enter a valid number of shares')
+      return
+    }
+
+    if (newShares < 0) {
+      alert('Shares cannot be negative')
+      return
+    }
+
+    loading.value = true
+    await adjustHoldingShares(holding.isin, newShares, holding.current_price)
+    await fetchPortfolio() // Refresh the portfolio data
+    editingIndex.value = null // Exit edit mode
+    editingShares.value = 0
+  } catch (err) {
+    console.error('Error adjusting holding:', err)
+    alert('Failed to adjust holding. Please try again.')
+    fetchPortfolio() // Revert changes by refreshing
+  } finally {
+    loading.value = false
+  }
+}
+
+const cancelEdit = () => {
+  editingIndex.value = null
+  editingShares.value = 0
+}
+
+const adjustHoldingShares = async (isin, newShares, currentPrice) => {
+  const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/adjust-holding/`, {
+    isin: isin,
+    new_shares: newShares,
+    current_price: currentPrice,
+    note: 'Adjusted holding manually'
+  }, {
+    headers: {
+      'Content-Type': 'application/json',
+      "X-CSRFToken": Cookies.get('csrftoken'),
+    },
+    withCredentials: true,
+  })
+
+  if (response.status !== 200) {
+    throw new Error('Failed to adjust holding')
+  }
+}
+
 onMounted(() => {
   fetchPortfolio()
 })
@@ -287,7 +338,7 @@ onMounted(() => {
   text-align: center;
   flex: 1;
   min-width: 200px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .insight-card h3 {
@@ -340,7 +391,7 @@ onMounted(() => {
 .holdings-table {
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 :deep(.p-datatable .p-datatable-thead > tr > th) {
@@ -360,10 +411,69 @@ onMounted(() => {
   background-color: #f8f9fa;
 }
 
+:deep(.p-datatable .p-datatable-tbody > tr > td.p-cell-editing) {
+  background-color: rgba(123, 255, 184, 0.1);
+  padding: 0;
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr > td.p-cell-editing .p-inputnumber-input) {
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  padding: 12px 16px;
+  font-size: inherit;
+  font-family: inherit;
+}
+
 :deep(.p-paginator) {
   background-color: #f8f9fa;
   border-top: 1px solid #dee2e6;
   padding: 12px 16px;
+}
+
+.shares-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.edit-button {
+  margin-left: auto;
+  opacity: 0.7;
+}
+
+.edit-button:hover {
+  opacity: 1;
+}
+
+.shares-editor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline-editor {
+  width: 120px !important;
+}
+
+.success-button {
+  color: #28a745;
+  border-color: #28a745;
+}
+
+.success-button:hover {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+.secondary-button {
+  color: #6c757d;
+  border-color: #6c757d;
+}
+
+.secondary-button:hover {
+  background-color: #6c757d;
+  border-color: #6c757d;
 }
 
 .empty-state {
@@ -378,7 +488,8 @@ onMounted(() => {
   font-size: 16px;
 }
 
-.loading, .error {
+.loading,
+.error {
   text-align: center;
   padding: 40px 20px;
   font-size: 16px;

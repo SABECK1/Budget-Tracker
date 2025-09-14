@@ -12,4 +12,5 @@ urlpatterns = [
     path("api/upload-csv/", CSVUploadView.as_view(), name="upload-csv"),
     path("api/portfolio/", views.portfolio_view, name="portfolio"),
     path("api/save-symbol/", views.save_symbol, name="save_symbol"),
+    path("api/adjust-holding/", views.adjust_holding_view, name="adjust_holding"),
 ]

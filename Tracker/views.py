@@ -429,6 +429,99 @@ def save_symbol(request):
 
 
 @require_http_methods(["POST"])
+@ensure_csrf_cookie
+def adjust_holding_view(request):
+    """
+    Adjust the shares of a holding by creating a buy or sell transaction.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+        isin = data.get("isin")
+        new_shares = float(data.get("new_shares", 0))
+        current_price = float(data.get("current_price", 0))
+        note = data.get("note", "Adjusted holding manually")
+
+        if not isin:
+            return JsonResponse({"error": "ISIN is required"}, status=400)
+
+        if new_shares < 0:
+            return JsonResponse({"error": "Shares cannot be negative"}, status=400)
+
+        # Calculate current net quantity for the holding
+        current_holding = Transaction.objects.filter(
+            user=request.user, isin=isin
+        ).aggregate(
+            net_quantity=Sum(
+                F("quantity")
+                * Case(
+                    When(transaction_subtype__name="Sell", then=-1),
+                    When(transaction_subtype__name="Buy", then=1),
+                    default=1,
+                    output_field=models.FloatField(),
+                ),
+                output_field=models.FloatField(),
+            )
+        )
+
+        # print("Current holding:", current_holding[0])
+
+        if not current_holding or current_holding["net_quantity"] is None:
+            current_net_quantity = 0
+        else:
+            current_net_quantity = current_holding["net_quantity"]
+
+        # Calculate difference
+        shares_difference = new_shares - current_net_quantity
+        print(shares_difference, new_shares, current_net_quantity)
+        if shares_difference == 0:
+            return JsonResponse({"message": "No change in shares"}, status=200)
+
+        # Determine transaction type
+        if shares_difference > 0:
+            # Buy additional shares
+            transaction_subtype = TransactionSubType.objects.get(name="Buy")
+            amount = -(
+                abs(shares_difference) * current_price
+            )  # Negative for money going out
+            quantity = abs(shares_difference)
+        else:
+            # Sell shares
+            transaction_subtype = TransactionSubType.objects.get(name="Sell")
+            amount = (
+                abs(shares_difference) * current_price
+            )  # Positive for money coming in
+            quantity = abs(shares_difference)
+
+        # Create the transaction
+        Transaction.objects.create(
+            user=request.user,
+            transaction_subtype=transaction_subtype,
+            amount=amount,
+            note=note,
+            isin=isin,
+            quantity=quantity,
+            fee=0,  # No fees for manual adjustments
+            tax=0,  # No tax for manual adjustments
+        )
+
+        return JsonResponse({"message": "Holding adjusted successfully"}, status=200)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except TransactionSubType.DoesNotExist:
+        return JsonResponse(
+            {"error": "Required transaction subtypes not found"}, status=500
+        )
+    # except Exception as e:
+    # return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["POST"])
 def register(request):
     data = json.loads(request.body.decode("utf-8"))
     form = CreateUserForm(data)

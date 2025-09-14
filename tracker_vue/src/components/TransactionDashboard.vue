@@ -346,17 +346,9 @@ const onCsvUpload = async (event) => {
         <Card class="mb-4">
             <template #title>Transactions by Subtype</template>
             <template #content>
-                <DataTable
-                    :value="transactionsBySubtype"
-                    :loading="loading"
-                    v-model:expandedRows="expandedRows"
-                    dataKey="subtype.id"
-                    tableStyle="min-width: 50rem"
-                    stripedRows
-                    showGridlines
-                    @row-expand="onRowExpand"
-                    @row-collapse="onRowCollapse"
-                >
+                <DataTable :value="transactionsBySubtype" :loading="loading" v-model:expandedRows="expandedRows"
+                    dataKey="subtype.id" tableStyle="min-width: 50rem" stripedRows showGridlines
+                    @row-expand="onRowExpand" @row-collapse="onRowCollapse">
                     <Column field="subtype.name" header="Subtype" sortable />
                     <Column field="count" header="Transaction Count" sortable />
                     <Column field="totalAmount" header="Total Amount" sortable>
@@ -384,16 +376,11 @@ const onCsvUpload = async (event) => {
                                 <ProgressSpinner />
                                 <p class="mt-2 text-primary">Loading transactions...</p>
                             </div>
-                            <DataTable
-                                v-else
-                                :value="expandedData.get(slotProps.data.subtype.id)?.transactions || []"
-                                responsiveLayout="scroll"
-                                :paginator="true"
-                                :rows="50"
+                            <DataTable v-else :value="expandedData.get(slotProps.data.subtype.id)?.transactions || []"
+                                responsiveLayout="scroll" :paginator="true" :rows="50"
                                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                                 :rowsPerPageOptions="[25, 50, 100]"
-                                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} transactions"
-                            >
+                                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} transactions">
                                 <Column field="created_at" header="Date" sortable>
                                     <template #body="slotProps">
                                         {{ formatDate(slotProps.data.created_at) }}
@@ -401,88 +388,60 @@ const onCsvUpload = async (event) => {
                                 </Column>
                                 <Column header="Transaction Subtype">
                                     <template #body="slotProps">
-                                        <select
-                                            v-if="editingTransaction === slotProps.data.id"
-                                            v-model="editForm.transaction_subtype"
-                                            class="form-control"
-                                        >
-                                            <option
-                                                v-for="subtype in transactionSubtypes"
-                                                :key="subtype.id"
-                                                :value="subtype.id"
-                                            >
+                                        <select v-if="editingTransaction === slotProps.data.id"
+                                            v-model="editForm.transaction_subtype" class="form-control">
+                                            <option v-for="subtype in transactionSubtypes" :key="subtype.id"
+                                                :value="subtype.id">
                                                 {{ subtype.name }}
                                             </option>
                                         </select>
-                                        <span v-else>{{ getSubtypeById(slotProps.data.transaction_subtype)?.name || 'Unknown' }}</span>
+                                        <span v-else>{{ getSubtypeById(slotProps.data.transaction_subtype)?.name ||
+                                            'Unknown' }}</span>
                                     </template>
                                 </Column>
                                 <Column field="amount" header="Amount" sortable>
                                     <template #body="slotProps">
-                                        <input
-                                            v-if="editingTransaction === slotProps.data.id"
-                                            v-model="editForm.amount"
-                                            type="number"
-                                            step="0.01"
-                                            class="form-control"
-                                        />
+                                        <input v-if="editingTransaction === slotProps.data.id" v-model="editForm.amount"
+                                            type="number" step="0.01" class="form-control" />
                                         <span v-else>{{ formatCurrency(slotProps.data.amount) }}</span>
                                     </template>
                                 </Column>
                                 <Column field="note" header="Note">
                                     <template #body="slotProps">
-                                        <input
-                                            v-if="editingTransaction === slotProps.data.id"
-                                            v-model="editForm.note"
-                                            class="form-control"
-                                        />
+                                        <input v-if="editingTransaction === slotProps.data.id" v-model="editForm.note"
+                                            class="form-control" />
                                         <span v-else>{{ slotProps.data.note || '-' }}</span>
                                     </template>
                                 </Column>
                                 <Column field="isin" header="ISIN">
                                     <template #body="slotProps">
-                                        <input
-                                            v-if="editingTransaction === slotProps.data.id"
-                                            v-model="editForm.isin"
-                                            class="form-control"
-                                        />
+                                        <input v-if="editingTransaction === slotProps.data.id" v-model="editForm.isin"
+                                            class="form-control" />
                                         <span v-else>{{ slotProps.data.isin || '-' }}</span>
                                     </template>
                                 </Column>
                                 <Column field="quantity" header="Quantity">
                                     <template #body="slotProps">
-                                        <input
-                                            v-if="editingTransaction === slotProps.data.id"
-                                            v-model="editForm.quantity"
-                                            type="number"
-                                            step="0.01"
-                                            class="form-control"
-                                        />
+                                        <input v-if="editingTransaction === slotProps.data.id"
+                                            v-model="editForm.quantity" type="number" step="0.01"
+                                            class="form-control" />
                                         <span v-else>{{ slotProps.data.quantity || '-' }}</span>
                                     </template>
                                 </Column>
                                 <Column field="fee" header="Fee">
                                     <template #body="slotProps">
-                                        <input
-                                            v-if="editingTransaction === slotProps.data.id"
-                                            v-model="editForm.fee"
-                                            type="number"
-                                            step="0.01"
-                                            class="form-control"
-                                        />
-                                        <span v-else>{{ slotProps.data.fee ? formatCurrency(slotProps.data.fee) : '-' }}</span>
+                                        <input v-if="editingTransaction === slotProps.data.id" v-model="editForm.fee"
+                                            type="number" step="0.01" class="form-control" />
+                                        <span v-else>{{ slotProps.data.fee ? formatCurrency(slotProps.data.fee) : '-'
+                                            }}</span>
                                     </template>
                                 </Column>
                                 <Column field="tax" header="Tax">
                                     <template #body="slotProps">
-                                        <input
-                                            v-if="editingTransaction === slotProps.data.id"
-                                            v-model="editForm.tax"
-                                            type="number"
-                                            step="0.01"
-                                            class="form-control"
-                                        />
-                                        <span v-else>{{ slotProps.data.tax ? formatCurrency(slotProps.data.tax) : '-' }}</span>
+                                        <input v-if="editingTransaction === slotProps.data.id" v-model="editForm.tax"
+                                            type="number" step="0.01" class="form-control" />
+                                        <span v-else>{{ slotProps.data.tax ? formatCurrency(slotProps.data.tax) : '-'
+                                            }}</span>
                                     </template>
                                 </Column>
                                 <Column header="Actions">
@@ -490,33 +449,23 @@ const onCsvUpload = async (event) => {
                                         <div v-if="editingTransaction === slotProps.data.id">
                                             <div class="mb-2">
                                                 <label>
-                                                    <input
-                                                        type="checkbox"
-                                                        v-model="editForm.applyToAllWithSameNote"
-                                                    />
-                                                    Assign subtype to all transactions with the same {{ editForm.isin ? 'ISIN' : 'note' }}
+                                                    <input type="checkbox" v-model="editForm.applyToAllWithSameNote" />
+                                                    Assign subtype to all transactions with the same {{ editForm.isin ?
+                                                    'ISIN' : 'note' }}
                                                 </label>
                                             </div>
                                             <div class="d-flex gap-2">
-                                                <button
-                                                    @click="saveEdit(slotProps.data)"
-                                                    class="btn btn-success btn-sm"
-                                                >
+                                                <button @click="saveEdit(slotProps.data)"
+                                                    class="btn btn-success btn-sm">
                                                     Save
                                                 </button>
-                                                <button
-                                                    @click="cancelEdit"
-                                                    class="btn btn-secondary btn-sm"
-                                                >
+                                                <button @click="cancelEdit" class="btn btn-secondary btn-sm">
                                                     Cancel
                                                 </button>
                                             </div>
                                         </div>
-                                        <button
-                                            v-else
-                                            @click="startEdit(slotProps.data)"
-                                            class="btn btn-primary btn-sm"
-                                        >
+                                        <button v-else @click="startEdit(slotProps.data)"
+                                            class="btn btn-primary btn-sm">
                                             Edit
                                         </button>
                                     </template>
@@ -533,16 +482,8 @@ const onCsvUpload = async (event) => {
             <template #title>Import Transactions</template>
             <template #content>
                 <div class="p-4">
-                    <FileUpload
-                        name="file"
-                        url="/api/upload-csv/"
-                        accept=".csv"
-                        :withCredentials="true"
-                        :customUpload="true"
-                        @uploader="onCsvUpload"
-                        :disabled="csvUploading"
-                        
-                    >
+                    <FileUpload name="file" url="/api/upload-csv/" accept=".csv" :withCredentials="true"
+                        :customUpload="true" @uploader="onCsvUpload" :disabled="csvUploading">
                         <template #empty>
                             <div class="text-center p-4">
                                 <i class="pi pi-upload text-4xl text-primary mb-3"></i>
@@ -558,11 +499,10 @@ const onCsvUpload = async (event) => {
                     </div>
 
                     <div v-if="csvUploadResult && !csvUploading" class="mt-3">
-                        <div
-                            :class="csvUploadResult.startsWith('Success') ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'"
-                            class="border-l-4 p-4 rounded"
-                        >
-                            <p class="font-semibold">{{ csvUploadResult.startsWith('Success') ? 'Success!' : 'Error!' }}</p>
+                        <div :class="csvUploadResult.startsWith('Success') ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'"
+                            class="border-l-4 p-4 rounded">
+                            <p class="font-semibold">{{ csvUploadResult.startsWith('Success') ? 'Success!' : 'Error!' }}
+                            </p>
                             <pre class="mt-2 whitespace-pre-wrap">{{ csvUploadResult }}</pre>
                         </div>
                     </div>
