@@ -53,7 +53,7 @@
               />
             </div>
           </template>
-          <Column field="symbol" header="Symbol" sortable :showFilterMatchModes="false">
+          <!-- <Column field="symbol" header="Symbol" sortable :showFilterMatchModes="false">
             <template #body="slotProps">
               <div v-if="slotProps.data.symbol !== 'Not found'" class="symbol-display">
                 {{ slotProps.data.symbol }}
@@ -74,7 +74,7 @@
                 @input="filterCallback()"
               />
             </template>
-          </Column>
+          </Column> -->
 
           <Column field="name" header="Name" sortable :showFilterMatchModes="false">
             <template #filter="{ filterCallback }">
@@ -141,7 +141,7 @@
         </div>
       </div>
 
-      <Dialog v-model:visible="isModalOpen" header="Enter Symbol Manually" modal>
+      <!-- <Dialog v-model:visible="isModalOpen" header="Enter Symbol Manually" modal>
         <div class="p-field">
           <label for="symbol-input">Symbol:</label>
           <InputText id="symbol-input" v-model="selectedHolding.symbol" />
@@ -154,7 +154,7 @@
           <Button label="Cancel" icon="pi pi-times" class="p-button-text" @click="isModalOpen = false"></Button>
           <Button label="Save" icon="pi pi-check" class="p-button-primary" @click="saveSymbol"></Button>
         </template>
-      </Dialog>
+      </Dialog> -->
     </div>
   </div>
 </template>
@@ -167,8 +167,6 @@ import Cookies from 'js-cookie'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
-import Dialog from 'primevue/dialog'
-import Button from 'primevue/button'
 import { FilterMatchMode } from '@primevue/core/api'
 
 const holdings = ref([])
@@ -178,14 +176,14 @@ const holdingsCount = ref(0)
 const topPerformer = ref('')
 const loading = ref(true)
 const error = ref('')
-const isModalOpen = ref(false)
-const selectedHolding = ref({symbol: '', name: '', isin: ''})
+// const isModalOpen = ref(false)
+// const selectedHolding = ref({symbol: '', name: '', isin: ''})
 
 // Filters for DataTable
 const filters = reactive({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   name: { value: null, matchMode: FilterMatchMode.CONTAINS },
-  symbol: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  // symbol: { value: null, matchMode: FilterMatchMode.CONTAINS },
   isin: { value: null, matchMode: FilterMatchMode.CONTAINS },
   shares: { value: null, matchMode: FilterMatchMode.BETWEEN },
   avg_price: { value: null, matchMode: FilterMatchMode.BETWEEN },
@@ -229,41 +227,41 @@ const fetchPortfolio = async () => {
   }
 }
 
-const openModal = (holding) => {
-  selectedHolding.value = { ...holding }
-  isModalOpen.value = true
-}
+// const openModal = (holding) => {
+//   selectedHolding.value = { ...holding }
+//   isModalOpen.value = true
+// }
 
-const saveSymbol = async () => {
-  if (!selectedHolding.value.symbol.trim()) {
-    alert("Symbol is required")
-    return
-  }
+// const saveSymbol = async () => {
+//   if (!selectedHolding.value.name.trim()) {
+//     alert("Name is required")
+//     return
+//   }
 
-  try {
-    const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/save-symbol/`, {
-      isin: selectedHolding.value.isin,
-      symbol: selectedHolding.value.symbol.trim(),
-      name: selectedHolding.value.name.trim() || ""
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        "X-CSRFToken": Cookies.get('csrftoken'),
-      },
-      withCredentials: true,
-    })
+//   try {
+//     const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/save-symbol/`, {
+//       isin: selectedHolding.value.isin,
+//       // symbol: selectedHolding.value.symbol.trim(),
+//       name: selectedHolding.value.name.trim() || ""
+//     }, {
+//       headers: {
+//         'Content-Type': 'application/json',
+//         "X-CSRFToken": Cookies.get('csrftoken'),
+//       },
+//       withCredentials: true,
+//     })
 
-    if (response.status === 200) {
-      isModalOpen.value = false
-      fetchPortfolio() // refresh the portfolio to show the new symbol
-    }
-  } catch (err) {
-    console.error('Error saving symbol:', err)
-    alert("Failed to save symbol. Please try again.")
-  }
-}
+//     if (response.status === 200) {
+//       isModalOpen.value = false
+//       fetchPortfolio() // refresh the portfolio to show the new symbol
+//     }
+//   } catch (err) {
+//     console.error('Error saving symbol:', err)
+//     alert("Failed to save symbol. Please try again.")
+//   }
+// }
 
-// DataTable handles filtering internally with the filters reactive object
+// // DataTable handles filtering internally with the filters reactive object
 
 onMounted(() => {
   fetchPortfolio()
