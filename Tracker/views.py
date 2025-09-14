@@ -260,9 +260,12 @@ def portfolio_view(request):
         total_value += value
 
         # Get symbol for the ISIN
-        symbol = get_symbol_for_isin(holding['isin']) or "Not found"
+        symbol_info = get_symbol_for_isin(holding['isin']) or {}
+        symbol = symbol_info.get('symbol', 'Not found')
+        name = symbol_info.get('name', 'Not found')
 
         portfolio_data.append({
+            'name': name,
             'symbol': symbol,
             'isin': holding['isin'],
             'shares': float(net_quantity),

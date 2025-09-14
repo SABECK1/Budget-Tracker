@@ -40,8 +40,11 @@ def get_symbol_for_isin(isin):
     resp = requests.get(url=url, headers=headers, params=params)
     data = resp.json()
     if 'quotes' in data and len(data['quotes']) > 0:
-        return data['quotes'][0]['symbol']
+        return {
+            "symbol": data['quotes'][0]['symbol'],
+            "name": data['quotes'][0]['longname'] if 'longname' in data['quotes'][0] else data['quotes'][0]['shortname']
+        }
     else:
         return None
 
-print(get_symbol_for_isin('US02079K3059'))  # Example usage
+print(get_symbol_for_isin('US5949181045'))  # Example usage
