@@ -302,15 +302,14 @@ def portfolio_view(request):
         current_price = avg_price  # fallback
 
         try:
-            history_json, intraday_json, name = get_history(isin)
-            intraday_data = json.loads(intraday_json)
+            name, intraday_data = get_history(isin)
             if intraday_data and len(intraday_data) > 0:
-                current_price = float(intraday_data[-1]["Price"])
-            else:
-                # Try historical if intraday is empty
-                history_data = json.loads(history_json)
-                if history_data and len(history_data) > 0:
-                    current_price = float(history_data[-1]["Price"])
+                current_price = float(intraday_data[-1][1])
+            # else:
+            #     # Try historical if intraday is empty
+            #     history_data = json.loads(history_json)
+            #     if history_data and len(history_data) > 0:
+            #         current_price = float(history_data[-1]["Price"])
         except Exception as e:
             print(f"Error fetching price for {isin}: {e}")
             current_price = 0  # fallback

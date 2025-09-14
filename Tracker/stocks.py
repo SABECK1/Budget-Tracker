@@ -1,6 +1,4 @@
 import requests
-import pandas as pd
-# from .models import UserProvidedSymbol
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36'
 }
@@ -19,17 +17,19 @@ def get_history(isin):
     resp = requests.get(url, headers=headers)
     assert resp.status_code == 200, resp.status_code
 
-    dfhistory = pd.DataFrame(resp.json()['series']['history']['data'], columns=['Date', 'Price'])
-    dfhistory.Date *= 1000000
-    dfhistory.Date = pd.to_datetime(dfhistory.Date)
-    dfhistory.set_index('Date', inplace=True)
+    # dfhistory = pd.DataFrame(resp.json()['series']['history']['data'], columns=['Date', 'Price'])
+    # dfhistory.Date *= 1000000
+    # dfhistory.Date = pd.to_datetime(dfhistory.Date)
+    # dfhistory.set_index('Date', inplace=True)
 
-    dfintraday = pd.DataFrame(resp.json()['series']['intraday']['data'], columns=['Date', 'Price'])
-    dfintraday.Date *= 1000000
-    dfintraday.Date = pd.to_datetime(dfintraday.Date)
-    dfintraday.set_index('Date', inplace=True)
-    print(dfintraday)
-    return dfhistory.to_json(orient='records'), dfintraday.to_json(orient='records'), name
+    # dfintraday = pd.DataFrame(resp.json()['series']['intraday']['data'], columns=['Date', 'Price'])
+    # dfintraday.Date *= 1000000
+    # dfintraday.Date = pd.to_datetime(dfintraday.Date)
+    # dfintraday.set_index('Date', inplace=True)
+    # print(dfintraday)
+    # resp.json()['series']['intraday']['data'][-1]
+    return name, resp.json()['series']['intraday']['data']
+    # return name, dfintraday.to_json(orient='records') #dfhistory.to_json(orient='records'),
 
 # def get_symbol_for_isin(isin, user=None):
 #     # First check if user provided symbol

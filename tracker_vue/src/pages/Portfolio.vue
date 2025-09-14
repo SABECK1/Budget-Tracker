@@ -108,25 +108,25 @@
 
           <Column field="avg_price" header="Avg Price" sortable dataType="numeric">
             <template #body="slotProps">
-              ${{ slotProps.data.avg_price.toFixed(2) }}
+              {{ slotProps.data.avg_price.toFixed(2) }}€
             </template>
           </Column>
 
           <Column field="current_price" header="Current Price" sortable dataType="numeric">
             <template #body="slotProps">
-              ${{ slotProps.data.current_price.toFixed(2) }}
+              {{ slotProps.data.current_price.toFixed(2) }}€
             </template>
           </Column>
 
           <Column field="value" header="Value" sortable dataType="numeric">
             <template #body="slotProps">
-              ${{ slotProps.data.value.toFixed(2) }}
+              {{ slotProps.data.value.toFixed(2) }}€
             </template>
           </Column>
 
           <Column field="total_invested" header="Total Invested" sortable dataType="numeric">
             <template #body="slotProps">
-              ${{ slotProps.data.total_invested.toFixed(2) }}
+              {{ slotProps.data.total_invested.toFixed(2) }}€
             </template>
           </Column>
 
