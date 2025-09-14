@@ -32,7 +32,7 @@
           v-if="holdings.length > 0"
           :value="holdings"
           :filters="filters"
-          filterDisplay="menu"
+          filterDisplay="row"
           :globalFilterFields="['name','symbol', 'isin']"
           :paginator="true"
           :rows="10"
@@ -54,34 +54,37 @@
             </div>
           </template>
                     <Column field="symbol" header="Symbol" sortable :showFilterMatchModes="false">
-            <template #filter="{ filterModel }">
+            <template #filter="{ filterCallback }">
               <InputText
-                v-model="filterModel.value"
+                v-model="filters.symbol.value"
                 type="text"
                 placeholder="Search by Symbol"
                 class="p-column-filter"
+                @input="filterCallback()"
               />
             </template>
           </Column>
 
           <Column field="name" header="Name" sortable :showFilterMatchModes="false">
-            <template #filter="{ filterModel }">
+            <template #filter="{ filterCallback }">
               <InputText
-                v-model="filterModel.value"
+                v-model="filters.name.value"
                 type="text"
                 placeholder="Search by name"
                 class="p-column-filter"
+                @input="filterCallback()"
               />
             </template>
           </Column>
 
           <Column field="isin" header="ISIN" sortable :showFilterMatchModes="false">
-            <template #filter="{ filterModel }">
+            <template #filter="{ filterCallback }">
               <InputText
-                v-model="filterModel.value"
+                v-model="filters.isin.value"
                 type="text"
                 placeholder="Search by ISIN"
                 class="p-column-filter"
+                @input="filterCallback()"
               />
             </template>
           </Column>
