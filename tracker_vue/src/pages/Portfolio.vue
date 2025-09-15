@@ -195,6 +195,7 @@ const filters = reactive({
 
 const setChartData = () => {
   holdings.value.forEach(holding => {
+    console.log('Holding.preday:', holding)
     if (holding.intraday_data && holding.intraday_data.length > 0) {
       holding.intraday_data = {
         labels: holding.intraday_data.map(point =>
@@ -206,7 +207,17 @@ const setChartData = () => {
             data: holding.intraday_data.map(point => point[1]),
             fill: false,
             borderColor: '#42A5F5',
+            pointRadius: 0,
             tension: 0.1
+          },
+          {
+            label: 'Pre-market',
+            data: holding.intraday_data.map(() => holding.preday),
+            fill: false,
+            borderColor: '#FFA726',
+            pointRadius: 0,
+            borderDash: [5, 5],
+            tension: 0.1,
           }
         ]
       }

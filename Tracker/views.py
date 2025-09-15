@@ -343,6 +343,7 @@ def portfolio_view(request):
             current_price = price_info['current_price']
             name = price_info['name']
             intraday_data = price_info.get('intraday_data', [])
+            preday = price_info.get('preday', [])
         else:
             # Fallback to avg_price if concurrent fetch failed
             current_price = avg_price
@@ -361,6 +362,7 @@ def portfolio_view(request):
                 "value": float(value),
                 "total_invested": float(total_invested),
                 "intraday_data": intraday_data,
+                "preday": preday    
             }
         )
 
@@ -370,7 +372,6 @@ def portfolio_view(request):
         if total_invested_sum > 0
         else 0
     )
-
     return JsonResponse(
         {
             "holdings": portfolio_data,

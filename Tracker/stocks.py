@@ -67,7 +67,8 @@ async def get_history_async(isin: str, session: aiohttp.ClientSession) -> Tuple[
             data = await resp.json()
 
         intraday_data = data.get('series', {}).get('intraday', {}).get('data', [])
-        return name, intraday_data
+        plotline_preday = data.get("info", {}).get("plotlines", [{}])[0].get("value")
+        return name, intraday_data, plotline_preday
     except Exception as e:
         print(f"Error fetching price for {isin}: {e}")
         return f"Error ({isin})", []
@@ -77,7 +78,7 @@ async def fetch_single_price(isin: str, max_concurrent: int) -> Dict[str, any]:
     async with semaphore:
         async with aiohttp.ClientSession() as session:
             try:
-                name, intraday_data = await get_history_async(isin, session)
+                name, intraday_data, preday = await get_history_async(isin, session)
                 if intraday_data and len(intraday_data) > 0:
                     current_price = float(intraday_data[-1][1])
                     success = True
@@ -89,7 +90,8 @@ async def fetch_single_price(isin: str, max_concurrent: int) -> Dict[str, any]:
                     'name': name,
                     'current_price': current_price,
                     'success': success,
-                    "intraday_data": intraday_data
+                    'intraday_data': intraday_data,
+                    'preday': preday
                 }
             except Exception as e:
                 print(f"Failed to fetch data for {isin}: {e}")
@@ -98,7 +100,8 @@ async def fetch_single_price(isin: str, max_concurrent: int) -> Dict[str, any]:
                     'name': f"Error ({isin})",
                     'current_price': None,
                     'success': False,
-                    "intraday_data": []
+                    'intraday_data': [],
+                    'preday': []
                 }
 
 
