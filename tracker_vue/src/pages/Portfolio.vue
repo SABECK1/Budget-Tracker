@@ -107,6 +107,12 @@
             </template>
           </Column>
 
+          <Column field="performance" header="Performance">
+            <template #body="slotProps">
+              <Chart type="line" :data="slotProps.data.intraday_data" :options="chartOptions" />
+            </template>
+          </Column>
+
           <Column field="value" header="Value" sortable dataType="numeric">
             <template #body="slotProps">
               {{ slotProps.data.value.toFixed(2) }}€
@@ -159,6 +165,8 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
 import { FilterMatchMode } from '@primevue/core/api'
+import Chart from 'primevue/chart'
+// import { set } from 'core-js/core/dict'
 
 const holdings = ref([])
 const totalValue = ref(0)
@@ -184,6 +192,32 @@ const filters = reactive({
   value: { value: null, matchMode: FilterMatchMode.BETWEEN },
   total_invested: { value: null, matchMode: FilterMatchMode.BETWEEN }
 })
+
+const setChartData = () => {
+  holdings.value.forEach(holding => {
+    if (holding.intraday_data && holding.intraday_data.length > 0) {
+      holding.intraday_data = {
+        labels: holding.intraday_data.map(point =>
+            new Date(point[0]).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        ),
+        datasets: [
+          {
+            label: 'Price',
+            data: holding.intraday_data.map(point => point[1]),
+            fill: false,
+            borderColor: '#42A5F5',
+            tension: 0.1
+          }
+        ]
+      }
+    } else {
+      holding.intraday_data = {
+        labels: [],
+        datasets: []
+      }
+    }
+  })
+}
 
 const fetchPortfolio = async () => {
   try {
@@ -211,6 +245,8 @@ const fetchPortfolio = async () => {
       )
       topPerformer.value = topHolding.isin
     }
+
+    setChartData()
 
   } catch (err) {
     console.error('Error fetching portfolio:', err)

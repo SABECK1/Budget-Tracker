@@ -342,15 +342,15 @@ def portfolio_view(request):
         if price_info and price_info['success'] and price_info['current_price']:
             current_price = price_info['current_price']
             name = price_info['name']
+            intraday_data = price_info.get('intraday_data', [])
         else:
             # Fallback to avg_price if concurrent fetch failed
             current_price = avg_price
-            name = price_info['name'] if price_info else f"Unknown ({isin})"
+            name = f"Unknown ({isin})"
 
         value = float(net_quantity) * current_price
         total_value += value
         total_invested_sum += float(total_invested)
-
         portfolio_data.append(
             {
                 "name": name,
@@ -360,6 +360,7 @@ def portfolio_view(request):
                 "current_price": float(current_price),
                 "value": float(value),
                 "total_invested": float(total_invested),
+                "intraday_data": intraday_data,
             }
         )
 

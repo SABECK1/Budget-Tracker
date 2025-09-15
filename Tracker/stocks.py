@@ -88,7 +88,8 @@ async def fetch_single_price(isin: str, max_concurrent: int) -> Dict[str, any]:
                     'isin': isin,
                     'name': name,
                     'current_price': current_price,
-                    'success': success
+                    'success': success,
+                    "intraday_data": intraday_data
                 }
             except Exception as e:
                 print(f"Failed to fetch data for {isin}: {e}")
@@ -96,7 +97,8 @@ async def fetch_single_price(isin: str, max_concurrent: int) -> Dict[str, any]:
                     'isin': isin,
                     'name': f"Error ({isin})",
                     'current_price': None,
-                    'success': False
+                    'success': False,
+                    "intraday_data": []
                 }
 
 
