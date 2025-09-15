@@ -26,7 +26,8 @@ from django.contrib.auth import authenticate, login, logout
 from .forms import CreateUserForm
 from django.db import models
 from django.db.models import Sum, F, Case, When
-from .stocks import get_history
+from .stocks import get_history, fetch_multiple_prices
+import asyncio
 
 
 class CSVUploadView(APIView):
@@ -284,7 +285,45 @@ def portfolio_view(request):
         .filter(net_quantity__gt=0.01)
     )
 
-    # Format the response
+    # Get list of ISINs for concurrent fetching
+    isins = [holding["isin"] for holding in holdings]
+
+    # Fetch all prices concurrently
+    try:
+        price_data = asyncio.run(fetch_multiple_prices(isins, max_concurrent=5))
+    except Exception as e:
+        print(f"Error in concurrent fetching: {e}")
+        
+        # Fallback to synchronous fetching
+        price_data = {}
+        for isin in isins:
+            try:
+                name, intraday_data = get_history(isin)
+                if intraday_data and len(intraday_data) > 0:
+                    current_price = float(intraday_data[-1][1])
+                    price_data[isin] = {
+                        'isin': isin,
+                        'name': name,
+                        'current_price': current_price,
+                        'success': True
+                    }
+                else:
+                    price_data[isin] = {
+                        'isin': isin,
+                        'name': f"Unknown ({isin})",
+                        'current_price': None,
+                        'success': False
+                    }
+            except Exception as e2:
+                print(f"Error fetching price for {isin}: {e2}")
+                price_data[isin] = {
+                    'isin': isin,
+                    'name': f"Error ({isin})",
+                    'current_price': None,
+                    'success': False
+                }
+
+    # Format the response using the fetched price data
     portfolio_data = []
     total_value = 0
     total_invested_sum = 0
@@ -298,21 +337,15 @@ def portfolio_view(request):
         )
         isin = holding["isin"]
 
-        # Fetch current price using get_history
-        current_price = avg_price  # fallback
-
-        try:
-            name, intraday_data = get_history(isin)
-            if intraday_data and len(intraday_data) > 0:
-                current_price = float(intraday_data[-1][1])
-            # else:
-            #     # Try historical if intraday is empty
-            #     history_data = json.loads(history_json)
-            #     if history_data and len(history_data) > 0:
-            #         current_price = float(history_data[-1]["Price"])
-        except Exception as e:
-            print(f"Error fetching price for {isin}: {e}")
-            current_price = 0  # fallback
+        # Get price data from concurrent fetch
+        price_info = price_data.get(isin)
+        if price_info and price_info['success'] and price_info['current_price']:
+            current_price = price_info['current_price']
+            name = price_info['name']
+        else:
+            # Fallback to avg_price if concurrent fetch failed
+            current_price = avg_price
+            name = price_info['name'] if price_info else f"Unknown ({isin})"
 
         value = float(net_quantity) * current_price
         total_value += value
