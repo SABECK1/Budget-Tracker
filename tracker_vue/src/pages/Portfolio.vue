@@ -195,8 +195,13 @@ const filters = reactive({
 
 const setChartData = () => {
   holdings.value.forEach(holding => {
-    console.log('Holding.preday:', holding)
-    if (holding.intraday_data && holding.intraday_data.length > 0) {
+    if (!holding.intraday_data && !holding.intraday_data.length > 0) {
+      return
+    }
+
+      const lastPrice = holding.intraday_data[holding.intraday_data.length - 1][1];
+      const priceColor = lastPrice > holding.preday ? "green" : "red";
+
       holding.intraday_data = {
         labels: holding.intraday_data.map(point =>
             new Date(point[0]).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -206,7 +211,7 @@ const setChartData = () => {
             label: 'Price',
             data: holding.intraday_data.map(point => point[1]),
             fill: false,
-            borderColor: '#42A5F5',
+            borderColor: priceColor,
             pointRadius: 0,
             tension: 0.1
           },
@@ -221,12 +226,6 @@ const setChartData = () => {
           }
         ]
       }
-    } else {
-      holding.intraday_data = {
-        labels: [],
-        datasets: []
-      }
-    }
   })
 }
 
