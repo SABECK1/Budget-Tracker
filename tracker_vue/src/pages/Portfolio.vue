@@ -168,6 +168,60 @@ import { FilterMatchMode } from '@primevue/core/api'
 import Chart from 'primevue/chart'
 // import { set } from 'core-js/core/dict'
 
+// Process historical data for different time periods
+const processHistoricalData = (rawHistoryData) => {
+  if (!rawHistoryData || rawHistoryData.length === 0) {
+    return {
+      weekly_data: [],
+      monthly_data: [],
+      quarterly_data: [],
+      semiannual_data: [],
+      yearly_data: [],
+      fiveyear_data: [],
+      alltime_data: []
+    }
+  }
+
+  // Get current timestamp in seconds (match API format)
+  const now = Date.now()
+
+  // Time periods in seconds
+  const periods = {
+    '1w': 7 * 24 * 60 * 60 * 1000,      // 1 week
+    '1m': 30 * 24 * 60 * 60 * 1000,     // 1 month
+    '3m': 90 * 24 * 60 * 60 * 1000,     // 3 months
+    '6m': 180 * 24 * 60 * 60 * 1000,    // 6 months
+    '1y': 365 * 24 * 60 * 60 * 1000,    // 1 year
+    '5y': 5 * 365 * 24 * 60 * 60 * 1000 // 5 years
+  }
+
+  // Filter and format data for each period
+  const filteredData = {}
+  console.log(now, periods['1w'], now - periods['1w'])
+  // Filter data points that are within each time period (rawHistoryData is [timestamp, price] pairs)
+  Object.keys(periods).forEach(key => {
+    const cutoffTime = now - periods[key]
+    filteredData[key] = rawHistoryData.filter(point => {
+      // point[0] is unix timestamp, but might need conversion
+      const pointTime = point[0]
+      return pointTime > cutoffTime
+    })
+  })
+
+  // All time data is the full history
+  filteredData['alltime'] = [...rawHistoryData]
+  console.log("Processed historical data into periods:", filteredData)
+  return {
+    weekly_data: filteredData['1w'],
+    monthly_data: filteredData['1m'],
+    quarterly_data: filteredData['3m'],
+    semiannual_data: filteredData['6m'],
+    yearly_data: filteredData['1y'],
+    fiveyear_data: filteredData['5y'],
+    alltime_data: filteredData['alltime']
+  }
+}
+
 const chartOptions = ref({
   responsive: true,
   maintainAspectRatio: false,
@@ -213,38 +267,97 @@ const filters = reactive({
   total_invested: { value: null, matchMode: FilterMatchMode.BETWEEN }
 })
 
+const createChartFormat = (rawData, holding) => {
+  if (!rawData || rawData.length === 0) {
+    return {
+      labels: [],
+      datasets: [{
+        label: 'Price',
+        data: [],
+        borderColor: '#6c757d',
+        fill: false,
+        pointRadius: 0,
+        tension: 0.1
+      }]
+    }
+  }
+
+  // Determine color based on trend
+  let priceColor = '#6c757d'
+  if (holding.current_price && holding.preday) {
+    if (holding.current_price > holding.preday) {
+      priceColor = '#28a745' // green
+    } else if (holding.current_price < holding.preday) {
+      priceColor = '#dc3545' // red
+    }
+  }
+
+  return {
+    labels: rawData.map(point =>
+      new Date(point[0]).toLocaleString([], {
+        year: '2-digit', month: '2-digit', day: '2-digit',
+      })
+    ),
+    datasets: [
+      {
+        label: 'Price',
+        data: rawData.map(point => point[1]),
+        fill: false,
+        borderColor: priceColor,
+        pointRadius: 0,
+        tension: 0.1
+      }
+    ]
+  }
+}
+
 const setChartData = () => {
   holdings.value.forEach(holding => {
-    if (!holding.intraday_data && !holding.intraday_data.length > 0) {
-      return
+    // Process historical data into different time periods
+    if (holding.history && holding.history.length > 0) {
+      const processedData = processHistoricalData(holding.history)
+      Object.keys(processedData).forEach(key => {
+        holding[key] = createChartFormat(processedData[key], holding)
+      })
     }
 
-    const lastPrice = holding.intraday_data[holding.intraday_data.length - 1][1];
-    const priceColor = lastPrice > holding.preday ? "green" : "red";
-
-    holding.intraday_data = {
-      labels: holding.intraday_data.map(point =>
-        new Date(point[0]).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-      ),
-      datasets: [
-        {
-          label: 'Price',
-          data: holding.intraday_data.map(point => point[1]),
-          fill: false,
-          borderColor: priceColor,
-          pointRadius: 0,
-          tension: 0.1
-        },
-        {
-          label: 'Pre-market',
-          data: holding.intraday_data.map(() => holding.preday),
-          fill: false,
-          borderColor: '#FFA726',
-          pointRadius: 0,
-          borderDash: [5, 5],
-          tension: 0.1,
+    // Process intraday data
+    if (holding.intraday_data && holding.intraday_data.length > 0) {
+      // Determine color based on trend
+      const lastPrice = holding.intraday_data[holding.intraday_data.length - 1][1]
+      let priceColor = '#6c757d'
+      if (holding.preday) {
+        if (lastPrice > holding.preday) {
+          priceColor = '#28a745' // green
+        } else if (lastPrice < holding.preday) {
+          priceColor = '#dc3545' // red
         }
-      ]
+      }
+
+      holding.intraday_data = {
+        labels: holding.intraday_data.map(point =>
+          new Date(point[0] * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        ),
+        datasets: [
+          {
+            label: 'Price',
+            data: holding.intraday_data.map(point => point[1]),
+            fill: false,
+            borderColor: priceColor,
+            pointRadius: 0,
+            tension: 0.1
+          },
+          {
+            label: 'Pre-market',
+            data: holding.intraday_data.map(() => holding.preday),
+            fill: false,
+            borderColor: '#FFA726',
+            pointRadius: 0,
+            borderDash: [5, 5],
+            tension: 0.1,
+          }
+        ]
+      }
     }
   })
 }
