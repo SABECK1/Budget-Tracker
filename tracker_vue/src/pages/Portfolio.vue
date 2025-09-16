@@ -40,28 +40,6 @@
               <InputText v-model="filters['global'].value" placeholder="Global Search" class="global-filter" />
             </div>
           </template>
-          <!-- <Column field="symbol" header="Symbol" sortable :showFilterMatchModes="false">
-            <template #body="slotProps">
-              <div v-if="slotProps.data.symbol !== 'Not found'" class="symbol-display">
-                {{ slotProps.data.symbol }}
-              </div>
-              <div v-else class="symbol-missing">
-                <span>{{ slotProps.data.symbol }}</span>
-                <button @click="openModal(slotProps.data)" class="enter-symbol-button" title="Enter symbol manually">
-                  <i class="pi pi-plus"></i>
-                </button>
-              </div>
-            </template>
-            <template #filter="{ filterCallback }">
-              <InputText
-                v-model="filters.symbol.value"
-                type="text"
-                placeholder="Search by Symbol"
-                class="p-column-filter"
-                @input="filterCallback()"
-              />
-            </template>
-          </Column> -->
 
           <Column field="name" header="Name" sortable :showFilterMatchModes="false">
             <template #filter="{ filterCallback }">
@@ -107,15 +85,29 @@
             </template>
           </Column>
 
-          <Column field="performance" header="Performance">
+          <Column field="performance" header="Performance" style="min-width: 220px;">
             <template #body="slotProps">
-              <Chart type="line" :data="slotProps.data.intraday_data" :options="chartOptions" />
-              <div class="today-change-card" v-if="slotProps.data.preday">
-                <div class="change-value" :class="changeClass(slotProps.data)">
-                  {{ changePercentage(slotProps.data).toFixed(2) }}%
+              <div class="chart-container">
+                <select :value="slotProps.data.selectedPeriod || globalPeriod" @change="updateHoldingPeriod(slotProps.data, $event.target.value)" class="period-selector">
+                  <option value="intraday">Intraday</option>
+                  <option value="1w">1 Week</option>
+                  <option value="1m">1 Month</option>
+                  <option value="3m">3 Months</option>
+                  <option value="6m">6 Months</option>
+                  <option value="1y">1 Year</option>
+                  <option value="5y">5 Years</option>
+                  <option value="all">All Time</option>
+                </select>
+                <div class="performance-chart-wrapper">
+                  <Chart type="line" :data="getChartData(slotProps.data)" :options="chartOptions" />
                 </div>
-                <div class="change-amount">
-                  {{ changeAmount(slotProps.data).toFixed(2) }}€
+                <div class="today-change-card" v-if="slotProps.data.preday && (slotProps.data.selectedPeriod === 'intraday' || (!slotProps.data.selectedPeriod && globalPeriod === 'intraday'))">
+                  <div class="change-value" :class="changeClass(slotProps.data)">
+                    {{ changePercentage(slotProps.data).toFixed(2) }}%
+                  </div>
+                  <div class="change-amount">
+                    {{ changeAmount(slotProps.data).toFixed(2) }}€
+                  </div>
                 </div>
               </div>
             </template>
@@ -206,6 +198,8 @@ const editingShares = ref(0)
 // const isModalOpen = ref(false)
 // const selectedHolding = ref({symbol: '', name: '', isin: ''})
 
+const globalPeriod = ref('intraday')
+
 // Filters for DataTable
 const filters = reactive({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -292,40 +286,6 @@ const fetchPortfolio = async () => {
   }
 }
 
-// const openModal = (holding) => {
-//   selectedHolding.value = { ...holding }
-//   isModalOpen.value = true
-// }
-
-// const saveSymbol = async () => {
-//   if (!selectedHolding.value.name.trim()) {
-//     alert("Name is required")
-//     return
-//   }
-
-//   try {
-//     const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/save-symbol/`, {
-//       isin: selectedHolding.value.isin,
-//       // symbol: selectedHolding.value.symbol.trim(),
-//       name: selectedHolding.value.name.trim() || ""
-//     }, {
-//       headers: {
-//         'Content-Type': 'application/json',
-//         "X-CSRFToken": Cookies.get('csrftoken'),
-//       },
-//       withCredentials: true,
-//     })
-
-//     if (response.status === 200) {
-//       isModalOpen.value = false
-//       fetchPortfolio() // refresh the portfolio to show the new symbol
-//     }
-//   } catch (err) {
-//     console.error('Error saving symbol:', err)
-//     alert("Failed to save symbol. Please try again.")
-//   }
-// }
-
 // // DataTable handles filtering internally with the filters reactive object
 
 const startEdit = (data, index) => {
@@ -401,6 +361,31 @@ const changeClass = (holding) => {
   if (change > 0) return 'positive'
   if (change < 0) return 'negative'
   return 'neutral'
+}
+
+const updateHoldingPeriod = (holding, period) => {
+  holding.selectedPeriod = period
+  // Don't need to re-render, Vue will handle it with reactivity
+}
+
+const getChartData = (holding) => {
+  const period = holding.selectedPeriod || globalPeriod.value
+  const dataKey = getDataKeyForPeriod(period)
+  return holding[dataKey] || holding.intraday_data
+}
+
+const getDataKeyForPeriod = (period) => {
+  const mapping = {
+    intraday: 'intraday_data',
+    '1w': 'weekly_data',
+    '1m': 'monthly_data',
+    '3m': 'quarterly_data',
+    '6m': 'semiannual_data',
+    '1y': 'yearly_data',
+    '5y': 'fiveyear_data',
+    'all': 'alltime_data'
+  }
+  return mapping[period] || 'intraday_data'
 }
 
 onMounted(() => {
@@ -628,8 +613,8 @@ onMounted(() => {
 }
 
 .today-change-card {
-  margin-top: 8px;
-  padding: 8px 12px;
+  margin-top: 12px;
+  padding: 10px 14px;
   background: #f8f9fa;
   border-radius: 6px;
   border: 1px solid #dee2e6;
@@ -658,5 +643,31 @@ onMounted(() => {
   font-size: 12px;
   color: #6c757d;
   margin-top: 2px;
+}
+
+.chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.period-selector {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.period-selector:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.performance-chart-wrapper {
+  width: 100%;
+  height: 140px;
 }
 </style>
