@@ -110,6 +110,14 @@
           <Column field="performance" header="Performance">
             <template #body="slotProps">
               <Chart type="line" :data="slotProps.data.intraday_data" :options="chartOptions" />
+              <div class="today-change-card" v-if="slotProps.data.preday">
+                <div class="change-value" :class="changeClass(slotProps.data)">
+                  {{ changePercentage(slotProps.data).toFixed(2) }}%
+                </div>
+                <div class="change-amount">
+                  {{ changeAmount(slotProps.data).toFixed(2) }}€
+                </div>
+              </div>
             </template>
           </Column>
 
@@ -168,6 +176,24 @@ import { FilterMatchMode } from '@primevue/core/api'
 import Chart from 'primevue/chart'
 // import { set } from 'core-js/core/dict'
 
+const chartOptions = ref({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: false
+    }
+  },
+  scales: {
+    x: {
+      display: true
+    },
+    y: {
+      display: true
+    }
+  }
+})
+
 const holdings = ref([])
 const totalValue = ref(0)
 const totalGainLoss = ref(0)
@@ -199,33 +225,33 @@ const setChartData = () => {
       return
     }
 
-      const lastPrice = holding.intraday_data[holding.intraday_data.length - 1][1];
-      const priceColor = lastPrice > holding.preday ? "green" : "red";
+    const lastPrice = holding.intraday_data[holding.intraday_data.length - 1][1];
+    const priceColor = lastPrice > holding.preday ? "green" : "red";
 
-      holding.intraday_data = {
-        labels: holding.intraday_data.map(point =>
-            new Date(point[0]).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-        ),
-        datasets: [
-          {
-            label: 'Price',
-            data: holding.intraday_data.map(point => point[1]),
-            fill: false,
-            borderColor: priceColor,
-            pointRadius: 0,
-            tension: 0.1
-          },
-          {
-            label: 'Pre-market',
-            data: holding.intraday_data.map(() => holding.preday),
-            fill: false,
-            borderColor: '#FFA726',
-            pointRadius: 0,
-            borderDash: [5, 5],
-            tension: 0.1,
-          }
-        ]
-      }
+    holding.intraday_data = {
+      labels: holding.intraday_data.map(point =>
+        new Date(point[0]).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      ),
+      datasets: [
+        {
+          label: 'Price',
+          data: holding.intraday_data.map(point => point[1]),
+          fill: false,
+          borderColor: priceColor,
+          pointRadius: 0,
+          tension: 0.1
+        },
+        {
+          label: 'Pre-market',
+          data: holding.intraday_data.map(() => holding.preday),
+          fill: false,
+          borderColor: '#FFA726',
+          pointRadius: 0,
+          borderDash: [5, 5],
+          tension: 0.1,
+        }
+      ]
+    }
   })
 }
 
@@ -358,6 +384,23 @@ const adjustHoldingShares = async (isin, newShares, currentPrice) => {
   if (response.status !== 200) {
     throw new Error('Failed to adjust holding')
   }
+}
+
+const changeAmount = (holding) => {
+  return holding.current_price - holding.preday
+}
+
+const changePercentage = (holding) => {
+  const change = changeAmount(holding)
+  return (change / holding.preday) * 100
+}
+
+// Avoid repeating the logic in the template
+const changeClass = (holding) => {
+  const change = changeAmount(holding)
+  if (change > 0) return 'positive'
+  if (change < 0) return 'negative'
+  return 'neutral'
 }
 
 onMounted(() => {
@@ -572,6 +615,7 @@ onMounted(() => {
   background-color: #e9ecef;
 }
 
+
 .p-field {
   margin-bottom: 16px;
 }
@@ -581,5 +625,38 @@ onMounted(() => {
   margin-bottom: 4px;
   font-weight: 600;
   color: #495057;
+}
+
+.today-change-card {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  text-align: center;
+}
+
+.change-value {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.change-value.positive {
+  color: #28a745;
+}
+
+.change-value.negative {
+  color: #dc3545;
+}
+
+.change-value.neutral {
+  color: #6c757d;
+}
+
+.change-amount {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 2px;
 }
 </style>
