@@ -101,12 +101,15 @@
                 <div class="performance-chart-wrapper">
                   <Chart type="line" :data="getChartData(slotProps.data)" :options="chartOptions" />
                 </div>
-                <div class="today-change-card" v-if="slotProps.data.preday && (slotProps.data.selectedPeriod === 'intraday' || (!slotProps.data.selectedPeriod && globalPeriod === 'intraday'))">
-                  <div class="change-value" :class="changeClass(slotProps.data)">
-                    {{ changePercentage(slotProps.data).toFixed(2) }}%
+                <div class="today-change-card" v-if="hasPeriodData(slotProps.data)">
+                  <div class="change-label">
+                    {{ getPeriodDisplayName(slotProps.data.selectedPeriod || globalPeriod) }} Change
+                  </div>
+                  <div class="change-value" :class="periodChangeClass(slotProps.data)">
+                    {{ periodChangePercentage(slotProps.data).toFixed(2) }}%
                   </div>
                   <div class="change-amount">
-                    {{ changeAmount(slotProps.data).toFixed(2) }}€
+                    {{ periodChangeAmount(slotProps.data).toFixed(2) }}€
                   </div>
                 </div>
               </div>
@@ -301,13 +304,13 @@ const createChartFormat = (rawData, holding) => {
   }
 
   // Determine color based on trend
+console.log(periodChangeAmount(holding))
+
   let priceColor = '#6c757d'
-  if (holding.current_price && holding.preday) {
-    if (holding.current_price > holding.preday) {
-      priceColor = '#28a745' // green
-    } else if (holding.current_price < holding.preday) {
-      priceColor = '#dc3545' // red
-    }
+  if (rawData[rawData.length - 1][1] - rawData[0][1] > 0) {
+    priceColor = '#28a745' // green
+  } else {
+    priceColor = '#dc3545' // red
   }
 
   return {
@@ -491,21 +494,81 @@ const adjustHoldingShares = async (isin, newShares, currentPrice) => {
   }
 }
 
-const changeAmount = (holding) => {
-  return holding.current_price - holding.preday
+// Calculate change for selected period
+const periodChangeAmount = (holding) => {
+  const period = holding.selectedPeriod || globalPeriod.value
+  const dataKey = getDataKeyForPeriod(period)
+  const periodData = holding[dataKey]
+
+  if (!periodData || !periodData.datasets || periodData.datasets.length === 0) {
+    return 0
+  }
+
+  const prices = periodData.datasets[0].data
+  if (prices.length < 2) return 0 // Need at least 2 data points
+
+  
+  const previousPrice = prices[0]
+  console.log("Holding", holding.isin, "value", holding.current_price - previousPrice, "for period", period, "with prices:", prices)
+  return holding.current_price - previousPrice
 }
 
-const changePercentage = (holding) => {
-  const change = changeAmount(holding)
-  return (change / holding.preday) * 100
+const periodChangePercentage = (holding) => {
+  const period = holding.selectedPeriod || globalPeriod.value
+  const dataKey = getDataKeyForPeriod(period)
+  const periodData = holding[dataKey]
+
+  if (!periodData || !periodData.datasets || periodData.datasets.length === 0) {
+    return 0
+  }
+
+  const prices = periodData.datasets[0].data
+  if (prices.length < 2) return 0 // Need at least 2 data points
+
+
+  console.log("Calculating period change percentage for", holding.isin, "in period", period, "with prices:", prices)
+  const previousPrice = prices[0]
+  if (previousPrice === 0) return 0 // Avoid division by zero
+
+  const change = periodChangeAmount(holding)
+  return (change / previousPrice) * 100
 }
 
-// Avoid repeating the logic in the template
-const changeClass = (holding) => {
-  const change = changeAmount(holding)
+// Class for period-specific change
+const periodChangeClass = (holding) => {
+  const change = periodChangeAmount(holding)
   if (change > 0) return 'positive'
   if (change < 0) return 'negative'
   return 'neutral'
+}
+
+// Get readable period name for display
+const getPeriodDisplayName = (period) => {
+  const displayNames = {
+    intraday: 'Intraday',
+    '1w': 'This Week',
+    '1m': 'This Month',
+    '3m': 'This Quarter',
+    '6m': 'This 6 Months',
+    '1y': 'This Year',
+    '5y': 'This 5 Years',
+    'all': 'All Time'
+  }
+  return displayNames[period] || 'Period'
+}
+
+// Check if holding has data for the current period
+const hasPeriodData = (holding) => {
+  const period = holding.selectedPeriod || globalPeriod.value
+  const dataKey = getDataKeyForPeriod(period)
+  const periodData = holding[dataKey]
+
+  if (!periodData || !periodData.datasets || periodData.datasets.length === 0) {
+    return false
+  }
+
+  const prices = periodData.datasets[0].data
+  return prices && prices.length >= 2 // Need at least 2 data points for comparison
 }
 
 const updateHoldingPeriod = (holding, period) => {
@@ -759,17 +822,27 @@ onMounted(() => {
 
 .today-change-card {
   margin-top: 12px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: #f8f9fa;
   border-radius: 6px;
   border: 1px solid #dee2e6;
   text-align: center;
 }
 
+.change-label {
+  font-size: 11px;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  margin-top: 2px;
+}
+
 .change-value {
   font-weight: bold;
-  font-size: 14px;
-  margin-bottom: 4px;
+  font-size: 13px;
+  margin-bottom: 2px;
 }
 
 .change-value.positive {
