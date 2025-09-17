@@ -352,7 +352,7 @@ const setChartData = async () => {
 
         holding.intraday_data = {
           labels: holding.intraday_data.map(point =>
-            new Date(point[0] * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            new Date(point[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           ),
           datasets: [
             {
