@@ -158,7 +158,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import AppNavigation from '../components/navigation.vue'
 import axios from 'axios'
 import Cookies from 'js-cookie'
@@ -219,7 +219,6 @@ const processHistoricalData = (rawHistoryData) => {
 
   // Filter and format data for each period
   const filteredData = {}
-  console.log(now, periods['1w'], now - periods['1w'])
   // Filter data points that are within each time period (rawHistoryData is [timestamp, price] pairs)
   // Since data is sorted from oldest to newest, use binary search to find the start index for each cutoff and slice
   Object.keys(periods).forEach(key => {
@@ -231,7 +230,6 @@ const processHistoricalData = (rawHistoryData) => {
 
   // All time data is the full history
   filteredData['alltime'] = [...rawHistoryData]
-  console.log("Processed historical data into periods:", filteredData)
   return {
     weekly_data: filteredData['1w'],
     monthly_data: filteredData['1m'],
@@ -262,24 +260,12 @@ const chartOptions = ref({
 })
 
 const holdings = ref([])
-const totalValue = ref(0)
-const totalGainLoss = ref(0)
-const holdingsCount = ref(0)
-const topPerformer = ref('')
-const loading = ref(true)
-const error = ref('')
-const editingIndex = ref(null)
-const editingShares = ref(0)
-// const isModalOpen = ref(false)
-// const selectedHolding = ref({symbol: '', name: '', isin: ''})
-
 const globalPeriod = ref('intraday')
 
 // Filters for DataTable
 const filters = reactive({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   name: { value: null, matchMode: FilterMatchMode.CONTAINS },
-  // symbol: { value: null, matchMode: FilterMatchMode.CONTAINS },
   isin: { value: null, matchMode: FilterMatchMode.CONTAINS },
   shares: { value: null, matchMode: FilterMatchMode.BETWEEN },
   avg_price: { value: null, matchMode: FilterMatchMode.BETWEEN },
@@ -288,7 +274,25 @@ const filters = reactive({
   total_invested: { value: null, matchMode: FilterMatchMode.BETWEEN }
 })
 
-const createChartFormat = (rawData, holding) => {
+// Computed properties for portfolio metrics with memoization
+const totalValue = computed(() => holdings.value.reduce((sum, holding) => sum + holding.value, 0))
+const totalGainLoss = computed(() => {
+  const totalValueSum = totalValue.value
+  const totalInvestedSum = holdings.value.reduce((sum, holding) => sum + holding.total_invested, 0)
+  return totalInvestedSum > 0 ? ((totalValueSum - totalInvestedSum) / totalInvestedSum) * 100 : 0
+})
+const holdingsCount = computed(() => holdings.value.length)
+const topPerformer = computed(() =>
+  holdings.value.length > 0 ? holdings.value.reduce((max, holding) => holding.value > max.value ? holding : max).isin : ''
+)
+const loading = ref(true)
+const error = ref('')
+const editingIndex = ref(null)
+const editingShares = ref(0)
+// const isModalOpen = ref(false)
+// const selectedHolding = ref({symbol: '', name: '', isin: ''})
+
+const createChartFormat = (rawData) => {
   if (!rawData || rawData.length === 0) {
     return {
       labels: [],
@@ -304,8 +308,6 @@ const createChartFormat = (rawData, holding) => {
   }
 
   // Determine color based on trend
-console.log(periodChangeAmount(holding))
-
   let priceColor = '#6c757d'
   if (rawData[rawData.length - 1][1] - rawData[0][1] > 0) {
     priceColor = '#28a745' // green
@@ -439,7 +441,6 @@ const fetchPortfolio = async () => {
 const startEdit = (data, index) => {
   editingIndex.value = index
   editingShares.value = data.shares
-  console.log('Editing shares for', data.isin, 'to', editingShares.value, "at index", index)
 }
 
 const saveEdit = async (holding) => {
@@ -507,9 +508,7 @@ const periodChangeAmount = (holding) => {
   const prices = periodData.datasets[0].data
   if (prices.length < 2) return 0 // Need at least 2 data points
 
-  
   const previousPrice = prices[0]
-  console.log("Holding", holding.isin, "value", holding.current_price - previousPrice, "for period", period, "with prices:", prices)
   return holding.current_price - previousPrice
 }
 
@@ -525,8 +524,6 @@ const periodChangePercentage = (holding) => {
   const prices = periodData.datasets[0].data
   if (prices.length < 2) return 0 // Need at least 2 data points
 
-
-  console.log("Calculating period change percentage for", holding.isin, "in period", period, "with prices:", prices)
   const previousPrice = prices[0]
   if (previousPrice === 0) return 0 // Avoid division by zero
 

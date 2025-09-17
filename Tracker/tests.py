@@ -69,7 +69,7 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_requires_authentication(self):
         """Test that CSV upload requires authentication"""
-        print("🧪 Running: test_csv_upload_requires_authentication")
+        print(" Running: test_csv_upload_requires_authentication")
         csv_content = self.create_csv_content([
             ['Date', 'Description', 'Amount', 'Note', 'ISIN', 'Quantity', 'Fee', 'Tax'],
             ['2023-01-01', 'Test Transaction', '-100.00', 'Test Note', '', '', '0.00', '0.00']
@@ -82,7 +82,7 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_successful(self):
         """Test successful CSV upload with valid data"""
-        print("🧪 Running: test_csv_upload_successful")
+        print(" Running: test_csv_upload_successful")
         self.client.login(username='testuser', password='testpass123')
 
         csv_content = self.create_csv_content([
@@ -112,7 +112,7 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_with_stock_transaction(self):
         """Test CSV upload with stock transactions"""
-        print("🧪 Running: test_csv_upload_with_stock_transaction")
+        print(" Running: test_csv_upload_with_stock_transaction")
         self.client.login(username='testuser', password='testpass123')
 
         csv_content = self.create_csv_content([
@@ -142,7 +142,7 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_automatic_subtype_assignment_by_note(self):
         """Test that new regular transactions get subtype from existing transactions with same note"""
-        print("🧪 Running: test_csv_upload_automatic_subtype_assignment_by_note")
+        print(" Running: test_csv_upload_automatic_subtype_assignment_by_note")
         self.client.login(username='testuser', password='testpass123')
 
         # Create an existing transaction with a specific subtype
@@ -173,7 +173,7 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_automatic_subtype_assignment_by_isin(self):
         """Test that new stock transactions get subtype from existing transactions with same ISIN"""
-        print("🧪 Running: test_csv_upload_automatic_subtype_assignment_by_isin")
+        print(" Running: test_csv_upload_automatic_subtype_assignment_by_isin")
         self.client.login(username='testuser', password='testpass123')
 
         # Create an existing stock transaction with a specific subtype
@@ -205,7 +205,7 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_default_subtype_when_no_matching_note(self):
         """Test that transactions get default subtype when no matching note exists"""
-        print("🧪 Running: test_csv_upload_default_subtype_when_no_matching_note")
+        print(" Running: test_csv_upload_default_subtype_when_no_matching_note")
         self.client.login(username='testuser', password='testpass123')
 
         csv_content = self.create_csv_content([
@@ -223,7 +223,7 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_handles_empty_rows(self):
         """Test that CSV upload handles empty rows gracefully"""
-        print("🧪 Running: test_csv_upload_handles_empty_rows")
+        print(" Running: test_csv_upload_handles_empty_rows")
         self.client.login(username='testuser', password='testpass123')
 
         csv_content = self.create_csv_content([
@@ -243,7 +243,7 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_with_missing_columns(self):
         """Test CSV upload with rows having fewer columns"""
-        print("🧪 Running: test_csv_upload_with_missing_columns")
+        print(" Running: test_csv_upload_with_missing_columns")
         self.client.login(username='testuser', password='testpass123')
 
         csv_content = self.create_csv_content([
@@ -265,7 +265,7 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_invalid_file(self):
         """Test CSV upload with invalid file"""
-        print("🧪 Running: test_csv_upload_invalid_file")
+        print(" Running: test_csv_upload_invalid_file")
         self.client.login(username='testuser', password='testpass123')
 
         # Try to upload without file
@@ -305,7 +305,7 @@ class CSVUploadTestCase(APITestCase):
 
 #     def test_portfolio_overview_calculation(self):
 #         """Test that portfolio overview calculates totals correctly"""
-#         print("🧪 Running: test_portfolio_overview_calculation")
+#         print(" Running: test_portfolio_overview_calculation")
 #         portfolio = Portfolio(self.mock_tr)
 
 #         # Mock the portfolio data
@@ -338,7 +338,7 @@ class CSVUploadTestCase(APITestCase):
 
 #     def test_portfolio_to_csv(self):
 #         """Test CSV generation"""
-#         print("🧪 Running: test_portfolio_to_csv")
+#         print(" Running: test_portfolio_to_csv")
 #         portfolio = Portfolio(self.mock_tr, output=None)
 #         portfolio.portfolio = self.sample_positions
 
@@ -351,7 +351,7 @@ class CSVUploadTestCase(APITestCase):
 
 #     def test_portfolio_to_csv_with_output(self):
 #         """Test CSV generation with output file"""
-#         print("🧪 Running: test_portfolio_to_csv_with_output")
+#         print(" Running: test_portfolio_to_csv_with_output")
 #         with patch('builtins.open', create=True) as mock_open:
 #             with patch('pathlib.Path.mkdir'):
 #                 portfolio = Portfolio(self.mock_tr, output="test.csv")
@@ -366,7 +366,7 @@ class CSVUploadTestCase(APITestCase):
 
 #     def test_portfolio_sorting(self):
 #         """Test portfolio sorting by different columns"""
-#         print("🧪 Running: test_portfolio_sorting")
+#         print(" Running: test_portfolio_sorting")
 #         portfolio = Portfolio(self.mock_tr, sort_by_column="name", sort_descending=False)
 #         portfolio.portfolio = [
 #             {"name": "Z Stock", "instrumentId": "Z123", "netSize": "1.0", "averageBuyIn": "100.0", "price": 100.0, "netValue": 100.0, "exchangeIds": ["LSX"]},
@@ -382,7 +382,7 @@ class CSVUploadTestCase(APITestCase):
 
 #     def test_portfolio_with_watchlist(self):
 #         """Test portfolio including watchlist items"""
-#         print("🧪 Running: test_portfolio_with_watchlist")
+#         print(" Running: test_portfolio_with_watchlist")
 #         portfolio = Portfolio(self.mock_tr, include_watchlist=True)
 #         portfolio.portfolio = self.sample_positions
 #         portfolio.watchlist = [
@@ -404,7 +404,7 @@ class CSVUploadTestCase(APITestCase):
 
 #     def test_empty_portfolio(self):
 #         """Test handling of empty portfolio"""
-#         print("🧪 Running: test_empty_portfolio")
+#         print(" Running: test_empty_portfolio")
 #         portfolio = Portfolio(self.mock_tr)
 #         portfolio.portfolio = []
 #         portfolio.cash = [{"amount": "500.0", "currencyId": "EUR"}]
@@ -420,7 +420,7 @@ class CSVUploadTestCase(APITestCase):
 
 #     def test_decimal_localization(self):
 #         """Test decimal localization formatting"""
-#         print("🧪 Running: test_decimal_localization")
+#         print(" Running: test_decimal_localization")
 #         portfolio = Portfolio(self.mock_tr, decimal_localization=True, lang="de")
 #         portfolio.portfolio = self.sample_positions
 
@@ -433,7 +433,7 @@ class CSVUploadTestCase(APITestCase):
 #     @patch('standalone_portfolio.login')
 #     def test_get_portfolio_data_function(self, mock_login):
 #         """Test the main get_portfolio_data function"""
-#         print("🧪 Running: test_get_portfolio_data_function")
+#         print(" Running: test_get_portfolio_data_function")
 #         mock_login.return_value = self.mock_tr
 
 #         # Mock the portfolio get method
@@ -445,7 +445,7 @@ class CSVUploadTestCase(APITestCase):
 
 #     def test_login_error_handling(self):
 #         """Test login error handling"""
-#         print("🧪 Running: test_login_error_handling")
+#         print(" Running: test_login_error_handling")
 #         with patch('standalone_portfolio.TradeRepublicApi') as mock_api_class:
 #             mock_api = Mock()
 #             mock_api_class.return_value = mock_api
@@ -488,13 +488,13 @@ class PortfolioViewTestCase(APITestCase):
 
     def test_portfolio_requires_authentication(self):
         """Test that portfolio endpoint requires authentication"""
-        print("🧪 Running: test_portfolio_requires_authentication")
+        print(" Running: test_portfolio_requires_authentication")
         response = self.client.get('/api/portfolio/')
         self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
 
     def test_portfolio_empty_for_new_user(self):
         """Test portfolio returns empty data for user with no stock transactions"""
-        print("🧪 Running: test_portfolio_empty_for_new_user")
+        print(" Running: test_portfolio_empty_for_new_user")
         self.client.login(username='testuser', password='testpass123')
 
         response = self.client.get('/api/portfolio/')
@@ -507,7 +507,7 @@ class PortfolioViewTestCase(APITestCase):
 
     def test_portfolio_with_single_buy_transaction(self):
         """Test portfolio calculation with a single buy transaction"""
-        print("🧪 Running: test_portfolio_with_single_buy_transaction")
+        print(" Running: test_portfolio_with_single_buy_transaction")
         self.client.login(username='testuser', password='testpass123')
 
         # Create a buy transaction
@@ -540,7 +540,7 @@ class PortfolioViewTestCase(APITestCase):
 
     def test_portfolio_with_buy_and_sell_same_stock(self):
         """Test portfolio calculation with buy and sell transactions for same stock"""
-        print("🧪 Running: test_portfolio_with_buy_and_sell_same_stock")
+        print(" Running: test_portfolio_with_buy_and_sell_same_stock")
         self.client.login(username='testuser', password='testpass123')
 
         # Buy 10 shares at $15 each
@@ -582,7 +582,7 @@ class PortfolioViewTestCase(APITestCase):
 
     def test_portfolio_filters_zero_net_positions(self):
         """Test that stocks with zero net positions are filtered out"""
-        print("🧪 Running: test_portfolio_filters_zero_net_positions")
+        print(" Running: test_portfolio_filters_zero_net_positions")
         self.client.login(username='testuser', password='testpass123')
 
         # Buy 5 shares
@@ -626,7 +626,7 @@ class PortfolioViewTestCase(APITestCase):
 
     def test_portfolio_with_multiple_stocks(self):
         """Test portfolio calculation with multiple different stocks"""
-        print("🧪 Running: test_portfolio_with_multiple_stocks")
+        print(" Running: test_portfolio_with_multiple_stocks")
         self.client.login(username='testuser', password='testpass123')
 
         # AAPL: Buy 10 shares at $15
@@ -675,7 +675,7 @@ class PortfolioViewTestCase(APITestCase):
 
     def test_portfolio_ignores_non_stock_transactions(self):
         """Test that non-stock transactions are ignored in portfolio calculation"""
-        print("🧪 Running: test_portfolio_ignores_non_stock_transactions")
+        print(" Running: test_portfolio_ignores_non_stock_transactions")
         self.client.login(username='testuser', password='testpass123')
 
         # Create regular expense transaction (no ISIN)
@@ -711,7 +711,7 @@ class PortfolioViewTestCase(APITestCase):
 
     def test_portfolio_with_fractional_shares(self):
         """Test portfolio calculation with fractional share quantities"""
-        print("🧪 Running: test_portfolio_with_fractional_shares")
+        print(" Running: test_portfolio_with_fractional_shares")
         self.client.login(username='testuser', password='testpass123')
 
         # Buy fractional shares
@@ -747,7 +747,7 @@ class PortfolioViewTestCase(APITestCase):
 
     def test_portfolio_calculation_with_fees_and_taxes(self):
         """Test that fees and taxes are properly included in calculations"""
-        print("🧪 Running: test_portfolio_calculation_with_fees_and_taxes")
+        print(" Running: test_portfolio_calculation_with_fees_and_taxes")
         self.client.login(username='testuser', password='testpass123')
 
         # Buy with fees
@@ -776,7 +776,7 @@ class PortfolioViewTestCase(APITestCase):
 
     def test_portfolio_user_isolation(self):
         """Test that users only see their own portfolio data"""
-        print("🧪 Running: test_portfolio_user_isolation")
+        print(" Running: test_portfolio_user_isolation")
         # Create second user
         user2 = User.objects.create_user(
             username='user2',
@@ -813,7 +813,7 @@ class PortfolioViewTestCase(APITestCase):
 
     def test_portfolio_with_only_sell_transactions(self):
         """Test portfolio with only sell transactions (should be empty)"""
-        print("🧪 Running: test_portfolio_with_only_sell_transactions")
+        print(" Running: test_portfolio_with_only_sell_transactions")
         self.client.login(username='testuser', password='testpass123')
 
         # Only sell transactions (no buys)
