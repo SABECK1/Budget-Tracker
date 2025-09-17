@@ -188,27 +188,17 @@ const findFirstIndexGreaterOrEqual = (data, cutoffTime) => {
   return left
 }
 
-// Process historical data for different time periods
-const processHistoricalData = (rawHistoryData) => {
+// Process historical data for specific time periods (lazy loading)
+const processHistoricalData = (rawHistoryData, requiredPeriods = ['intraday']) => {
   if (!rawHistoryData || rawHistoryData.length === 0) {
-    return {
-      weekly_data: [],
-      monthly_data: [],
-      quarterly_data: [],
-      semiannual_data: [],
-      yearly_data: [],
-      fiveyear_data: [],
-      alltime_data: []
-    }
+    return {}
   }
-
-  // Optimized with binary search for finding cutoff indices
 
   // Get current timestamp in seconds (match API format)
   const now = Date.now()
 
-  // Time periods in milliseconds
-  const periods = {
+  // Time periods in milliseconds (only compute required periods)
+  const periodDefinitions = {
     '1w': 7 * 24 * 60 * 60 * 1000,      // 1 week
     '1m': 30 * 24 * 60 * 60 * 1000,     // 1 month
     '3m': 90 * 24 * 60 * 60 * 1000,     // 3 months
@@ -217,28 +207,32 @@ const processHistoricalData = (rawHistoryData) => {
     '5y': 5 * 365 * 24 * 60 * 60 * 1000 // 5 years
   }
 
-  // Filter and format data for each period
+  // Ensure intraday is always included as default
+  const periodsToProcess = requiredPeriods.includes('intraday') ?
+    requiredPeriods :
+    ['intraday', ...requiredPeriods]
+
+  // Filter and format data for each required period
   const filteredData = {}
-  // Filter data points that are within each time period (rawHistoryData is [timestamp, price] pairs)
-  // Since data is sorted from oldest to newest, use binary search to find the start index for each cutoff and slice
-  Object.keys(periods).forEach(key => {
-    const cutoffTime = now - periods[key]
-    // Find the first index where point[0] (timestamp) >= cutoffTime using binary search
-    const startIndex = findFirstIndexGreaterOrEqual(rawHistoryData, cutoffTime)
-    filteredData[key] = rawHistoryData.slice(startIndex)
+  periodsToProcess.forEach(key => {
+    if (key === 'intraday') {
+      // Intraday data is already processed by the API
+      return
+    }
+    if (key === 'all') {
+      filteredData['alltime_data'] = [...rawHistoryData]
+      return
+    }
+
+    if (periodDefinitions[key]) {
+      const cutoffTime = now - periodDefinitions[key]
+      const startIndex = findFirstIndexGreaterOrEqual(rawHistoryData, cutoffTime)
+      const dataKey = getDataKeyForPeriod(key)
+      filteredData[dataKey] = rawHistoryData.slice(startIndex)
+    }
   })
 
-  // All time data is the full history
-  filteredData['alltime'] = [...rawHistoryData]
-  return {
-    weekly_data: filteredData['1w'],
-    monthly_data: filteredData['1m'],
-    quarterly_data: filteredData['3m'],
-    semiannual_data: filteredData['6m'],
-    yearly_data: filteredData['1y'],
-    fiveyear_data: filteredData['5y'],
-    alltime_data: filteredData['alltime']
-  }
+  return filteredData
 }
 
 const chartOptions = ref({
@@ -335,68 +329,98 @@ const createChartFormat = (rawData) => {
 }
 
 const setChartData = async () => {
-  // Process all holdings asynchronously in parallel for better performance
-  const processingPromises = holdings.value.map(async (holding) => {
-    // Process historical data into different time periods
-    if (holding.history && holding.history.length > 0) {
-      const processedData = await processHistoricalDataAsync(holding.history)
-      Object.keys(processedData).forEach(key => {
-        holding[key] = createChartFormat(processedData[key], holding)
-      })
-    }
+  // Progressive loading: Process holdings in batches for better performance
+  const holdingsToProcess = holdings.value
+  const batchSize = 3 // Process 3 holdings at a time
 
-    // Process intraday data
-    if (holding.intraday_data && holding.intraday_data.length > 0) {
-      // Determine color based on trend
-      const lastPrice = holding.intraday_data[holding.intraday_data.length - 1][1]
-      let priceColor = '#6c757d'
-      if (holding.preday) {
-        if (lastPrice > holding.preday) {
-          priceColor = '#28a745' // green
-        } else if (lastPrice < holding.preday) {
-          priceColor = '#dc3545' // red
+  for (let i = 0; i < holdingsToProcess.length; i += batchSize) {
+    const batch = holdingsToProcess.slice(i, i + batchSize)
+
+    const batchPromises = batch.map(async (holding) => {
+      // Process intraday data first (always needed as default)
+      if (holding.intraday_data && holding.intraday_data.length > 0) {
+        // Determine color based on trend
+        const lastPrice = holding.intraday_data[holding.intraday_data.length - 1][1]
+        let priceColor = '#6c757d'
+        if (holding.preday) {
+          if (lastPrice > holding.preday) {
+            priceColor = '#28a745' // green
+          } else if (lastPrice < holding.preday) {
+            priceColor = '#dc3545' // red
+          }
+        }
+
+        holding.intraday_data = {
+          labels: holding.intraday_data.map(point =>
+            new Date(point[0] * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          ),
+          datasets: [
+            {
+              label: 'Price',
+              data: holding.intraday_data.map(point => point[1]),
+              fill: false,
+              borderColor: priceColor,
+              pointRadius: 0,
+              tension: 0.1
+            },
+            {
+              label: 'Pre-market',
+              data: holding.intraday_data.map(() => holding.preday),
+              fill: false,
+              borderColor: '#FFA726',
+              pointRadius: 0,
+              borderDash: [5, 5],
+              tension: 0.1,
+            }
+          ]
         }
       }
 
-      holding.intraday_data = {
-        labels: holding.intraday_data.map(point =>
-          new Date(point[0] * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        ),
-        datasets: [
-          {
-            label: 'Price',
-            data: holding.intraday_data.map(point => point[1]),
-            fill: false,
-            borderColor: priceColor,
-            pointRadius: 0,
-            tension: 0.1
-          },
-          {
-            label: 'Pre-market',
-            data: holding.intraday_data.map(() => holding.preday),
-            fill: false,
-            borderColor: '#FFA726',
-            pointRadius: 0,
-            borderDash: [5, 5],
-            tension: 0.1,
-          }
-        ]
+      // Only process historical data if it exists and has length
+      if (holding.history && holding.history.length > 0) {
+        // For performance, only compute the default period initially
+        await processHoldingHistoricalData(holding, [globalPeriod.value])
       }
-    }
-  })
 
-  // Wait for all holdings to be processed in parallel
-  await Promise.all(processingPromises)
+      // Yield control to allow UI updates between batches
+      if (i < holdingsToProcess.length - batchSize) {
+        await new Promise(resolve => setTimeout(resolve, 10))
+      }
+    })
+
+    // Wait for current batch to complete before moving to next
+    await Promise.all(batchPromises)
+  }
 }
 
-// Async version of processHistoricalData to support parallel processing
-const processHistoricalDataAsync = async (rawHistoryData) => {
-  // Use a timeout to yield control and allow other processing
+// Process historical data with lazy period computation
+const processHoldingHistoricalData = async (holding, requiredPeriods = [globalPeriod.value]) => {
+  if (!holding.history || holding.history.length === 0) {
+    return
+  }
+
+  try {
+    const processedData = await processHistoricalDataAsync(holding.history, requiredPeriods)
+
+    // Cache the processed data on the holding object
+    Object.keys(processedData).forEach(key => {
+      if (processedData[key]) {
+        holding[key] = createChartFormat(processedData[key])
+      }
+    })
+  } catch (error) {
+    console.error(`Error processing historical data for holding ${holding.isin}:`, error)
+  }
+}
+
+// Async version of processHistoricalData with lazy loading support
+const processHistoricalDataAsync = async (rawHistoryData, requiredPeriods = [globalPeriod.value]) => {
+  // Use a timeout to yield control for large datasets
   if (rawHistoryData.length > 1000) {
     await new Promise(resolve => setTimeout(resolve, 0))
   }
 
-  return processHistoricalData(rawHistoryData)
+  return processHistoricalData(rawHistoryData, requiredPeriods)
 }
 
 const fetchPortfolio = async () => {
@@ -568,14 +592,40 @@ const hasPeriodData = (holding) => {
   return prices && prices.length >= 2 // Need at least 2 data points for comparison
 }
 
-const updateHoldingPeriod = (holding, period) => {
-  holding.selectedPeriod = period
-  // Don't need to re-render, Vue will handle it with reactivity
-}
+// Old function replaced with debounced version below
+
+// Debounced period update to prevent excessive processing
+const updateHoldingPeriod = ((holding, period) => {
+  // Debounce periods are cached on holdings to avoid re-processing
+  const debounceKey = `debounce_${period}`
+  if (holding[debounceKey]) {
+    clearTimeout(holding[debounceKey])
+  }
+
+  holding[debounceKey] = setTimeout(async () => {
+    holding.selectedPeriod = period
+    delete holding[debounceKey] // Clean up
+
+    // Compute the period data if not already computed
+    const dataKey = getDataKeyForPeriod(period)
+    if (!holding[dataKey] && holding.history && holding.history.length > 0) {
+      await processHoldingHistoricalData(holding, [period])
+    }
+  }, 200) // 200ms debounce delay
+})
 
 const getChartData = (holding) => {
   const period = holding.selectedPeriod || globalPeriod.value
   const dataKey = getDataKeyForPeriod(period)
+
+  // If the period data doesn't exist and we have historical data, compute it
+  if (!holding[dataKey] && holding.history && holding.history.length > 0) {
+    // Schedule computation for next tick to avoid blocking the render
+    setTimeout(() => processHoldingHistoricalData(holding, [period]), 0)
+    // Return intraday data as fallback while computing
+    return holding.intraday_data
+  }
+
   return holding[dataKey] || holding.intraday_data
 }
 
