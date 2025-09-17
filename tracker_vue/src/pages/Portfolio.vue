@@ -168,6 +168,23 @@ import { FilterMatchMode } from '@primevue/core/api'
 import Chart from 'primevue/chart'
 // import { set } from 'core-js/core/dict'
 
+// Binary search helper function to find first index where point[0] >= cutoffTime
+const findFirstIndexGreaterOrEqual = (data, cutoffTime) => {
+  let left = 0
+  let right = data.length
+
+  while (left < right) {
+    const mid = Math.floor((left + right) / 2)
+    if (data[mid][0] < cutoffTime) {
+      left = mid + 1
+    } else {
+      right = mid
+    }
+  }
+
+  return left
+}
+
 // Process historical data for different time periods
 const processHistoricalData = (rawHistoryData) => {
   if (!rawHistoryData || rawHistoryData.length === 0) {
@@ -182,10 +199,12 @@ const processHistoricalData = (rawHistoryData) => {
     }
   }
 
+  // Optimized with binary search for finding cutoff indices
+
   // Get current timestamp in seconds (match API format)
   const now = Date.now()
 
-  // Time periods in seconds
+  // Time periods in milliseconds
   const periods = {
     '1w': 7 * 24 * 60 * 60 * 1000,      // 1 week
     '1m': 30 * 24 * 60 * 60 * 1000,     // 1 month
@@ -199,13 +218,12 @@ const processHistoricalData = (rawHistoryData) => {
   const filteredData = {}
   console.log(now, periods['1w'], now - periods['1w'])
   // Filter data points that are within each time period (rawHistoryData is [timestamp, price] pairs)
+  // Since data is sorted from oldest to newest, use binary search to find the start index for each cutoff and slice
   Object.keys(periods).forEach(key => {
     const cutoffTime = now - periods[key]
-    filteredData[key] = rawHistoryData.filter(point => {
-      // point[0] is unix timestamp, but might need conversion
-      const pointTime = point[0]
-      return pointTime > cutoffTime
-    })
+    // Find the first index where point[0] (timestamp) >= cutoffTime using binary search
+    const startIndex = findFirstIndexGreaterOrEqual(rawHistoryData, cutoffTime)
+    filteredData[key] = rawHistoryData.slice(startIndex)
   })
 
   // All time data is the full history
@@ -311,11 +329,12 @@ const createChartFormat = (rawData, holding) => {
   }
 }
 
-const setChartData = () => {
-  holdings.value.forEach(holding => {
+const setChartData = async () => {
+  // Process all holdings asynchronously in parallel for better performance
+  const processingPromises = holdings.value.map(async (holding) => {
     // Process historical data into different time periods
     if (holding.history && holding.history.length > 0) {
-      const processedData = processHistoricalData(holding.history)
+      const processedData = await processHistoricalDataAsync(holding.history)
       Object.keys(processedData).forEach(key => {
         holding[key] = createChartFormat(processedData[key], holding)
       })
@@ -360,6 +379,19 @@ const setChartData = () => {
       }
     }
   })
+
+  // Wait for all holdings to be processed in parallel
+  await Promise.all(processingPromises)
+}
+
+// Async version of processHistoricalData to support parallel processing
+const processHistoricalDataAsync = async (rawHistoryData) => {
+  // Use a timeout to yield control and allow other processing
+  if (rawHistoryData.length > 1000) {
+    await new Promise(resolve => setTimeout(resolve, 0))
+  }
+
+  return processHistoricalData(rawHistoryData)
 }
 
 const fetchPortfolio = async () => {
@@ -389,7 +421,7 @@ const fetchPortfolio = async () => {
       topPerformer.value = topHolding.isin
     }
 
-    setChartData()
+    await setChartData()
 
   } catch (err) {
     console.error('Error fetching portfolio:', err)
