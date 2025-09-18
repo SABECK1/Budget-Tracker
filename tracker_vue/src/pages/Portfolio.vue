@@ -345,7 +345,7 @@ const createChartFormat = (rawData, transactionData = [], period = 'intraday') =
       x: new Date(transaction.timestamp).toLocaleString([], {
         year: '2-digit', month: '2-digit', day: '2-digit',
       }), // Convert back to seconds for chart
-      y: transaction.price
+      y: transaction.price,
     }))
 
     datasets.push({

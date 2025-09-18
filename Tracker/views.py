@@ -363,8 +363,6 @@ def portfolio_view(request):
             if transaction.quantity and transaction.amount and transaction.quantity != 0:
                 # Calculate transaction price
                 transaction_price = abs(float(transaction.amount) / float(transaction.quantity))
-                if transaction.transaction_subtype.name == "Sell":
-                    transaction_price *= -1  # Sells are stored as positive amount, so we need to adjust
 
                 # Convert to unix timestamp
                 transaction_timestamp = int(transaction.created_at.timestamp() * 1000)
