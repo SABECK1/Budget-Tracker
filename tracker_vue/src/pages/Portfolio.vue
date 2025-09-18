@@ -256,6 +256,21 @@ const chartOptions = ref({
   plugins: {
     legend: {
       display: false
+    },
+    tooltip: {
+      callbacks: {
+        label: function(context) {
+          const { quantity, total } = context.raw
+          if (context.dataset.label === 'Buy Transactions' || context.dataset.label === 'Sell Transactions') {
+            return `Quantity: ${quantity}, Total: €${total}`
+          } else {
+            return `${context.parsed.y} €`
+          }
+        },
+        title: function(tooltipItems) {
+          return `Date: ${tooltipItems[0].label}`
+        }
+      }
     }
   },
   scales: {
@@ -338,54 +353,58 @@ const createChartFormat = (rawData, transactionData = [], period = 'intraday') =
   // Filter transactions by period
   const periodFilteredTransactions = filterTransactionsByPeriod(transactionData, period)
 
-  // Add transaction dots for Buy transactions (green upward triangle)
-  const buyTransactions = periodFilteredTransactions.filter(t => t.type === 'Buy')
-  if (buyTransactions.length > 0) {
-    const buyPoints = buyTransactions.map(transaction => ({
-      x: new Date(transaction.timestamp).toLocaleString([], {
-        year: '2-digit', month: '2-digit', day: '2-digit',
-      }), // Convert back to seconds for chart
-      y: transaction.price,
-    }))
+        // Add transaction dots for Buy transactions (green upward triangle)
+        const buyTransactions = periodFilteredTransactions.filter(t => t.type === 'Buy')
+        if (buyTransactions.length > 0) {
+          const buyPoints = buyTransactions.map(transaction => ({
+            x: new Date(transaction.timestamp).toLocaleString([], {
+              year: '2-digit', month: '2-digit', day: '2-digit',
+            }), // Convert back to seconds for chart
+            y: transaction.price,
+            quantity: transaction.quantity,
+            total: (transaction.quantity * transaction.price + (transaction.fee || 0)).toFixed(2)
+          }))
 
-    datasets.push({
-      label: 'Buy Transactions',
-      data: buyPoints,
-      borderColor: '#28a745',
-      backgroundColor: '#28a745',
-      borderWidth: 1,
-      pointStyle: 'triangle',
-      pointRadius: 6,
-      pointHoverRadius: 8,
-      pointRotation: 0, // Triangle pointing up
-      showLine: false,
-      tension: 0
-    })
-  }
+          datasets.push({
+            label: 'Buy Transactions',
+            data: buyPoints,
+            borderColor: '#28a745',
+            backgroundColor: '#28a745',
+            borderWidth: 1,
+            pointStyle: 'triangle',
+            pointRadius: 6,
+            pointHoverRadius: 8,
+            pointRotation: 0, // Triangle pointing up
+            showLine: false,
+            tension: 0
+          })
+        }
 
-  // Add transaction dots for Sell transactions (red downward triangle)
-  const sellTransactions = periodFilteredTransactions.filter(t => t.type === 'Sell')
-  if (sellTransactions.length > 0) {
-    const sellPoints = sellTransactions.map(transaction => ({
-      x: new Date(transaction.timestamp).toLocaleString([], {
-        year: '2-digit', month: '2-digit', day: '2-digit',
-      }), // Convert back to seconds for chart
-      y: transaction.price
-    }))
-    datasets.push({
-      label: 'Sell Transactions',
-      data: sellPoints,
-      borderColor: '#dc3545',
-      backgroundColor: '#dc3545',
-      borderWidth: 1,
-      pointStyle: 'triangle',
-      pointRadius: 6,
-      pointHoverRadius: 8,
-      pointRotation: 180, // Triangle pointing down
-      showLine: false,
-      tension: 0
-    })
-  }
+        // Add transaction dots for Sell transactions (red downward triangle)
+        const sellTransactions = periodFilteredTransactions.filter(t => t.type === 'Sell')
+        if (sellTransactions.length > 0) {
+          const sellPoints = sellTransactions.map(transaction => ({
+            x: new Date(transaction.timestamp).toLocaleString([], {
+              year: '2-digit', month: '2-digit', day: '2-digit',
+            }), // Convert back to seconds for chart
+            y: transaction.price,
+            quantity: transaction.quantity,
+            total: (transaction.quantity * transaction.price + (transaction.fee || 0)).toFixed(2)
+          }))
+          datasets.push({
+            label: 'Sell Transactions',
+            data: sellPoints,
+            borderColor: '#dc3545',
+            backgroundColor: '#dc3545',
+            borderWidth: 1,
+            pointStyle: 'triangle',
+            pointRadius: 6,
+            pointHoverRadius: 8,
+            pointRotation: 180, // Triangle pointing down
+            showLine: false,
+            tension: 0
+          })
+        }
   return {
     labels: rawData.map(point =>
       new Date(point[0]).toLocaleString([], {
@@ -443,7 +462,9 @@ const setChartData = async () => {
         if (periodFilteredBuyTransactions.length > 0) {
           const buyPoints = periodFilteredBuyTransactions.map(transaction => ({
             x: new Date(transaction.timestamp).toLocaleString([], { hour: '2-digit', minute: '2-digit' }), // Use timestamp directly for chart
-            y: transaction.price
+            y: transaction.price,
+            quantity: transaction.quantity,
+            total: (transaction.quantity * transaction.price + (transaction.fee || 0)).toFixed(2)
           }))
 
           intradayDatasets.push({
@@ -466,7 +487,9 @@ const setChartData = async () => {
         if (periodFilteredSellTransactions.length > 0) {
           const sellPoints = periodFilteredSellTransactions.map(transaction => ({
             x: new Date(transaction.timestamp).toLocaleString([], { hour: '2-digit', minute: '2-digit' }), // Use timestamp directly for chart
-            y: transaction.price
+            y: transaction.price,
+            quantity: transaction.quantity,
+            total: (transaction.quantity * transaction.price + (transaction.fee || 0)).toFixed(2)
           }))
 
           intradayDatasets.push({
