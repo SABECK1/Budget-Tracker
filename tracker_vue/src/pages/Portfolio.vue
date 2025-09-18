@@ -169,6 +169,15 @@ import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
 import { FilterMatchMode } from '@primevue/core/api'
 import Chart from 'primevue/chart'
+
+  const periodDefinitions = {
+    '1w': 7 * 24 * 60 * 60 * 1000,      // 1 week
+    '1m': 30 * 24 * 60 * 60 * 1000,     // 1 month
+    '3m': 90 * 24 * 60 * 60 * 1000,     // 3 months
+    '6m': 180 * 24 * 60 * 60 * 1000,    // 6 months
+    '1y': 365 * 24 * 60 * 60 * 1000,    // 1 year
+    '5y': 5 * 365 * 24 * 60 * 60 * 1000 // 5 years
+  }
 // import { set } from 'core-js/core/dict'
 
 // Binary search helper function to find first index where point[0] >= cutoffTime
@@ -188,6 +197,21 @@ const findFirstIndexGreaterOrEqual = (data, cutoffTime) => {
   return left
 }
 
+// Filter transactions by period
+const filterTransactionsByPeriod = (transactions, period) => {
+  if (!transactions || transactions.length === 0 || period === 'all' || period === 'alltime') {
+    return transactions || []
+  }
+
+  // Get current timestamp in milliseconds
+  const now = Date.now()
+
+  const cutoffTime = now - (periodDefinitions[period] || 0)
+
+  // Transaction timestamps are in milliseconds (Unix timestamp * 1000)
+  return transactions.filter(transaction => transaction.timestamp >= cutoffTime)
+}
+
 // Process historical data for specific time periods (lazy loading)
 const processHistoricalData = (rawHistoryData, requiredPeriods = ['intraday']) => {
   if (!rawHistoryData || rawHistoryData.length === 0) {
@@ -197,15 +221,6 @@ const processHistoricalData = (rawHistoryData, requiredPeriods = ['intraday']) =
   // Get current timestamp in seconds (match API format)
   const now = Date.now()
 
-  // Time periods in milliseconds (only compute required periods)
-  const periodDefinitions = {
-    '1w': 7 * 24 * 60 * 60 * 1000,      // 1 week
-    '1m': 30 * 24 * 60 * 60 * 1000,     // 1 month
-    '3m': 90 * 24 * 60 * 60 * 1000,     // 3 months
-    '6m': 180 * 24 * 60 * 60 * 1000,    // 6 months
-    '1y': 365 * 24 * 60 * 60 * 1000,    // 1 year
-    '5y': 5 * 365 * 24 * 60 * 60 * 1000 // 5 years
-  }
 
   // Ensure intraday is always included as default
   const periodsToProcess = requiredPeriods.includes('intraday') ?
@@ -286,7 +301,7 @@ const editingShares = ref(0)
 // const isModalOpen = ref(false)
 // const selectedHolding = ref({symbol: '', name: '', isin: ''})
 
-const createChartFormat = (rawData) => {
+const createChartFormat = (rawData, transactionData = [], period = 'intraday') => {
   if (!rawData || rawData.length === 0) {
     return {
       labels: [],
@@ -309,22 +324,75 @@ const createChartFormat = (rawData) => {
     priceColor = '#dc3545' // red
   }
 
+  const datasets = [
+    {
+      label: 'Price',
+      data: rawData.map(point => point[1]),
+      fill: false,
+      borderColor: priceColor,
+      pointRadius: 0,
+      tension: 0.1
+    }
+  ]
+
+  // Filter transactions by period
+  const periodFilteredTransactions = filterTransactionsByPeriod(transactionData, period)
+
+  // Add transaction dots for Buy transactions (green upward triangle)
+  const buyTransactions = periodFilteredTransactions.filter(t => t.type === 'Buy')
+  if (buyTransactions.length > 0) {
+    const buyPoints = buyTransactions.map(transaction => ({
+      x: new Date(transaction.timestamp).toLocaleString([], {
+        year: '2-digit', month: '2-digit', day: '2-digit',
+      }), // Convert back to seconds for chart
+      y: transaction.price
+    }))
+
+    datasets.push({
+      label: 'Buy Transactions',
+      data: buyPoints,
+      borderColor: '#28a745',
+      backgroundColor: '#28a745',
+      borderWidth: 1,
+      pointStyle: 'triangle',
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      pointRotation: 0, // Triangle pointing up
+      showLine: false,
+      tension: 0
+    })
+  }
+
+  // Add transaction dots for Sell transactions (red downward triangle)
+  const sellTransactions = periodFilteredTransactions.filter(t => t.type === 'Sell')
+  if (sellTransactions.length > 0) {
+    const sellPoints = sellTransactions.map(transaction => ({
+      x: new Date(transaction.timestamp).toLocaleString([], {
+        year: '2-digit', month: '2-digit', day: '2-digit',
+      }), // Convert back to seconds for chart
+      y: transaction.price
+    }))
+    datasets.push({
+      label: 'Sell Transactions',
+      data: sellPoints,
+      borderColor: '#dc3545',
+      backgroundColor: '#dc3545',
+      borderWidth: 1,
+      pointStyle: 'triangle',
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      pointRotation: 180, // Triangle pointing down
+      showLine: false,
+      tension: 0
+    })
+  }
   return {
     labels: rawData.map(point =>
       new Date(point[0]).toLocaleString([], {
         year: '2-digit', month: '2-digit', day: '2-digit',
       })
     ),
-    datasets: [
-      {
-        label: 'Price',
-        data: rawData.map(point => point[1]),
-        fill: false,
-        borderColor: priceColor,
-        pointRadius: 0,
-        tension: 0.1
-      }
-    ]
+    datasets: datasets
   }
 }
 
@@ -350,31 +418,79 @@ const setChartData = async () => {
           }
         }
 
+        const intradayDatasets = [
+          {
+            label: 'Price',
+            data: holding.intraday_data.map(point => point[1]),
+            fill: false,
+            borderColor: priceColor,
+            pointRadius: 0,
+            tension: 0.1
+          },
+          {
+            label: 'Pre-market',
+            data: holding.intraday_data.map(() => holding.preday),
+            fill: false,
+            borderColor: '#FFA726',
+            pointRadius: 0,
+            borderDash: [5, 5],
+            tension: 0.1,
+          }
+        ]
+
+        // Filter transactions by intraday period and add transaction dots for Buy transactions (green upward triangle)
+        const periodFilteredBuyTransactions = filterTransactionsByPeriod(holding.transactions || [], 'intraday').filter(t => t.type === 'Buy')
+        if (periodFilteredBuyTransactions.length > 0) {
+          const buyPoints = periodFilteredBuyTransactions.map(transaction => ({
+            x: new Date(transaction.timestamp).toLocaleString([], { hour: '2-digit', minute: '2-digit' }), // Use timestamp directly for chart
+            y: transaction.price
+          }))
+
+          intradayDatasets.push({
+            label: 'Buy Transactions',
+            data: buyPoints,
+            borderColor: '#28a745',
+            backgroundColor: '#28a745',
+            borderWidth: 1,
+            pointStyle: 'triangle',
+            pointRadius: 6,
+            pointHoverRadius: 8,
+            pointRotation: 0, // Triangle pointing up
+            showLine: false,
+            tension: 0
+          })
+        }
+
+        // Filter transactions by intraday period and add transaction dots for Sell transactions (red downward triangle)
+        const periodFilteredSellTransactions = filterTransactionsByPeriod(holding.transactions || [], 'intraday').filter(t => t.type === 'Sell')
+        if (periodFilteredSellTransactions.length > 0) {
+          const sellPoints = periodFilteredSellTransactions.map(transaction => ({
+            x: new Date(transaction.timestamp).toLocaleString([], { hour: '2-digit', minute: '2-digit' }), // Use timestamp directly for chart
+            y: transaction.price
+          }))
+
+          intradayDatasets.push({
+            label: 'Sell Transactions',
+            data: sellPoints,
+            borderColor: '#dc3545',
+            backgroundColor: '#dc3545',
+            borderWidth: 1,
+            pointStyle: 'triangle',
+            pointRadius: 6,
+            pointHoverRadius: 8,
+            pointRotation: 180, // Triangle pointing down
+            showLine: false,
+            tension: 0
+          })
+        }
+
         holding.intraday_data = {
           labels: holding.intraday_data.map(point =>
             new Date(point[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           ),
-          datasets: [
-            {
-              label: 'Price',
-              data: holding.intraday_data.map(point => point[1]),
-              fill: false,
-              borderColor: priceColor,
-              pointRadius: 0,
-              tension: 0.1
-            },
-            {
-              label: 'Pre-market',
-              data: holding.intraday_data.map(() => holding.preday),
-              fill: false,
-              borderColor: '#FFA726',
-              pointRadius: 0,
-              borderDash: [5, 5],
-              tension: 0.1,
-            }
-          ]
+          datasets: intradayDatasets
         }
-      }
+    }
 
       // Only process historical data if it exists and has length
       if (holding.history && holding.history.length > 0) {
@@ -405,7 +521,17 @@ const processHoldingHistoricalData = async (holding, requiredPeriods = [globalPe
     // Cache the processed data on the holding object
     Object.keys(processedData).forEach(key => {
       if (processedData[key]) {
-        holding[key] = createChartFormat(processedData[key])
+        // Extract period from data key
+        let periodForKey = 'intraday'
+        if (key === 'weekly_data') periodForKey = '1w'
+        else if (key === 'monthly_data') periodForKey = '1m'
+        else if (key === 'quarterly_data') periodForKey = '3m'
+        else if (key === 'semiannual_data') periodForKey = '6m'
+        else if (key === 'yearly_data') periodForKey = '1y'
+        else if (key === 'fiveyear_data') periodForKey = '5y'
+        else if (key === 'alltime_data') periodForKey = 'all'
+
+        holding[key] = createChartFormat(processedData[key], holding.transactions || [], periodForKey)
       }
     })
   } catch (error) {
@@ -453,7 +579,7 @@ const fetchPortfolio = async () => {
     await setChartData()
 
   } catch (err) {
-    console.error('Error fetching portfolio:', err)
+    console.error('Error fetching portfolio:', err.response.data.message)
     error.value = 'Failed to load portfolio data. Please try again.'
   } finally {
     loading.value = false

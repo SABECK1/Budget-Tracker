@@ -11,6 +11,8 @@ from .serializers import (
     TransactionTypeSerializer,
     CSVUploadSerializer,
 )
+from datetime import datetime
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -112,9 +114,13 @@ class CSVUploadView(APIView):
                 if existing_transaction:
                     transaction_subtype = existing_transaction.transaction_subtype
 
+            #Convert row[0] to timezone-aware datetime
+            datetime_from_iso = datetime.fromisoformat(row[0])
+            creation_datetime = timezone.make_aware(datetime_from_iso)
+
             Transaction.objects.create(
                 user=request.user,
-                created_at=row[0],
+                created_at=creation_datetime,
                 transaction_subtype=transaction_subtype,
                 amount=amount,
                 note=note,
@@ -350,6 +356,26 @@ def portfolio_view(request):
             current_price = avg_price
             name = f"Unknown ({isin})"
 
+        # Get transaction data for this holding to show on chart
+        transactions = Transaction.objects.filter(user=request.user, isin=isin).order_by('created_at')
+        transaction_points = []
+        for transaction in transactions:
+            if transaction.quantity and transaction.amount and transaction.quantity != 0:
+                # Calculate transaction price
+                transaction_price = abs(float(transaction.amount) / float(transaction.quantity))
+                if transaction.transaction_subtype.name == "Sell":
+                    transaction_price *= -1  # Sells are stored as positive amount, so we need to adjust
+
+                # Convert to unix timestamp
+                transaction_timestamp = int(transaction.created_at.timestamp() * 1000)
+
+                transaction_points.append({
+                    'timestamp': transaction_timestamp,
+                    'price': transaction_price,
+                    'type': transaction.transaction_subtype.name,
+                    'quantity': float(transaction.quantity)
+                })
+
         value = float(net_quantity) * current_price
         total_value += value
         total_invested_sum += float(total_invested)
@@ -364,7 +390,8 @@ def portfolio_view(request):
                 "total_invested": float(total_invested),
                 "intraday_data": intraday_data,
                 "preday": preday,
-                "history": history
+                "history": history,
+                "transactions": transaction_points
             }
         )
 
