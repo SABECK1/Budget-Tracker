@@ -27,7 +27,22 @@
 
 
       <div class="portfolio-table">
-        <h2>Your Holdings</h2>
+        <div class="table-controls">
+          <h2>Your Holdings</h2>
+          <div class="global-period-control">
+            <label for="global-period-selector">All Holdings Period:</label>
+            <select id="global-period-selector" v-model="globalPeriod" @change="updateAllHoldingsPeriod" class="global-period-selector">
+              <option value="intraday">Intraday</option>
+              <option value="1w">1 Week</option>
+              <option value="1m">1 Month</option>
+              <option value="3m">3 Months</option>
+              <option value="6m">6 Months</option>
+              <option value="1y">1 Year</option>
+              <option value="5y">5 Years</option>
+              <option value="all">All Time</option>
+            </select>
+          </div>
+        </div>
         <DataTable v-if="holdings.length > 0" :value="holdings" :filters="filters" filterDisplay="row"
           :globalFilterFields="['name', 'symbol', 'isin']" :paginator="true" :rows="10"
           :rowsPerPageOptions="[5, 10, 25, 50]"
@@ -286,7 +301,33 @@ const chartOptions = ref({
 const holdings = ref([])
 const globalPeriod = ref('intraday')
 
-// Filters for DataTable
+// Update all holdings to use the global period
+const updateAllHoldingsPeriod = async () => {
+  // Clear individual selections and apply global period
+  holdings.value.forEach(holding => {
+    // Remove individual period selection to force use of global
+    delete holding.selectedPeriod
+  })
+
+  // Process historical data for all holdings with the new global period
+  if (holdings.value.length > 0) {
+    const batchSize = 3
+    for (let i = 0; i < holdings.value.length; i += batchSize) {
+      const batch = holdings.value.slice(i, i + batchSize)
+      const batchPromises = batch.map(async (holding) => {
+        if (holding.history && holding.history.length > 0) {
+          const dataKey = getDataKeyForPeriod(globalPeriod.value)
+          if (!holding[dataKey]) {
+            await processHoldingHistoricalData(holding, [globalPeriod.value])
+          }
+        }
+      })
+      await Promise.all(batchPromises)
+    }
+  }
+}
+
+// New ref for global period change tracking
 const filters = reactive({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   name: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -752,7 +793,13 @@ const updateHoldingPeriod = ((holding, period) => {
   }
 
   holding[debounceKey] = setTimeout(async () => {
-    holding.selectedPeriod = period
+    // If the period matches the global period, clear individual selection
+    if (period === globalPeriod.value) {
+      delete holding.selectedPeriod
+    } else {
+      // Override global period with individual selection
+      holding.selectedPeriod = period
+    }
     delete holding[debounceKey] // Clean up
 
     // Compute the period data if not already computed
@@ -838,6 +885,55 @@ onMounted(() => {
 
 .portfolio-table {
   margin-top: 20px;
+}
+
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.table-controls h2 {
+  margin: 0;
+  color: #495057;
+  font-size: 1.5rem;
+}
+
+.global-period-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.global-period-control label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+  margin: 0;
+}
+
+.global-period-selector {
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  background: #ffffff;
+  min-width: 120px;
+}
+
+.global-period-selector:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .table-header {
