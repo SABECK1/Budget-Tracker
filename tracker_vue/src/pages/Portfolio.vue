@@ -29,21 +29,30 @@
       <div class="portfolio-table">
         <div class="table-controls">
           <h2>Your Holdings</h2>
-          <div class="global-period-control">
-            <label for="global-period-selector">All Holdings Period:</label>
-            <select id="global-period-selector" v-model="globalPeriod" @change="updateAllHoldingsPeriod" class="global-period-selector">
-              <option value="intraday">Intraday</option>
-              <option value="1w">1 Week</option>
-              <option value="1m">1 Month</option>
-              <option value="3m">3 Months</option>
-              <option value="6m">6 Months</option>
-              <option value="1y">1 Year</option>
-              <option value="5y">5 Years</option>
-              <option value="all">All Time</option>
-            </select>
+          <div class="control-group">
+            <div class="global-period-control">
+              <label for="global-period-selector">All Holdings Period:</label>
+              <select id="global-period-selector" v-model="globalPeriod" @change="updateAllHoldingsPeriod" class="global-period-selector">
+                <option value="intraday">Intraday</option>
+                <option value="1w">1 Week</option>
+                <option value="1m">1 Month</option>
+                <option value="3m">3 Months</option>
+                <option value="6m">6 Months</option>
+                <option value="1y">1 Year</option>
+                <option value="5y">5 Years</option>
+                <option value="all">All Time</option>
+              </select>
+            </div>
+            <div class="hide-unknown-control">
+              <label class="checkbox-label">
+                <input id="hide-unknown-checkbox" type="checkbox" v-model="hideUnknownHoldings" />
+                <span class="checkmark"></span>
+                <span>Hide Unknown Holdings</span>
+              </label>
+            </div>
           </div>
         </div>
-        <DataTable v-if="holdings.length > 0" :value="holdings" :filters="filters" filterDisplay="row"
+        <DataTable v-if="filteredHoldings.length > 0" :value="filteredHoldings" :filters="filters" filterDisplay="row"
           :globalFilterFields="['name', 'symbol', 'isin']" :paginator="true" :rows="10"
           :rowsPerPageOptions="[5, 10, 25, 50]"
           paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
@@ -328,6 +337,8 @@ const updateAllHoldingsPeriod = async () => {
 }
 
 // New ref for global period change tracking
+const hideUnknownHoldings = ref(false)
+
 const filters = reactive({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   name: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -339,14 +350,29 @@ const filters = reactive({
   total_invested: { value: null, matchMode: FilterMatchMode.BETWEEN }
 })
 
-// Computed properties for portfolio metrics with memoization
-const totalValue = computed(() => holdings.value.reduce((sum, holding) => sum + holding.value, 0))
+// Computed property to filter out unknown holdings
+const filteredHoldings = computed(() => {
+  if (!hideUnknownHoldings.value) {
+    return holdings.value
+  }
+
+  return holdings.value.filter(holding => {
+    const name = holding.name || ''
+    const isNameKnown = name.trim() !== '' &&
+                       !name.toLowerCase().includes('unknown') 
+
+    return isNameKnown
+  })
+})
+
+// Computed properties for portfolio metrics with memoization (using filtered holdings)
+const totalValue = computed(() => filteredHoldings.value.reduce((sum, holding) => sum + holding.value, 0))
 const totalGainLoss = computed(() => {
   const totalValueSum = totalValue.value
-  const totalInvestedSum = holdings.value.reduce((sum, holding) => sum + holding.total_invested, 0)
+  const totalInvestedSum = filteredHoldings.value.reduce((sum, holding) => sum + holding.total_invested, 0)
   return totalInvestedSum > 0 ? ((totalValueSum - totalInvestedSum) / totalInvestedSum) * 100 : 0
 })
-const holdingsCount = computed(() => holdings.value.length)
+const holdingsCount = computed(() => filteredHoldings.value.length)
 const topPerformer = ref('')
 const loading = ref(true)
 const error = ref('')
@@ -1181,5 +1207,53 @@ onMounted(() => {
 .performance-chart-wrapper {
   width: 100%;
   height: 140px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: #495057;
+}
+
+.checkbox-label input[type="checkbox"] {
+  display: none;
+}
+
+.checkbox-label .checkmark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #007bff;
+  border-radius: 3px;
+  margin-right: 8px;
+  position: relative;
+  background: #fff;
+  transition: background-color 0.2s ease;
+}
+
+.checkbox-label input:checked + .checkmark {
+  background: #007bff;
+  border-color: #007bff;
+}
+
+.checkbox-label input:checked + .checkmark::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox-label .checkmark:hover {
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.checkbox-label input:checked + .checkmark:hover {
+  background: #0056b3;
 }
 </style>
