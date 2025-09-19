@@ -1,10 +1,14 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch, nextTick } from "vue";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Card from "primevue/card";
 import FileUpload from 'primevue/fileupload';
 import ProgressSpinner from 'primevue/progressspinner';
+import InputText from "primevue/inputtext";
+import Dropdown from "primevue/dropdown";
+import Button from "primevue/button";
+// import { FilterMatchMode } from "@primevue/core/api";
 import axios from "axios";
 import Cookies from 'js-cookie';
 
@@ -39,6 +43,10 @@ const expandedLoading = ref(new Set()); // Track which rows are loading
 const csvUploadResult = ref(null);
 const csvUploading = ref(false);
 
+// Filter state
+const noteFilter = ref('');
+const subtypeFilter = ref(null);
+
 // Fetch data on mount
 onMounted(async () => {
     try {
@@ -55,6 +63,17 @@ onMounted(async () => {
     }
 });
 
+// Watch for filter changes to clear cache and reset expanded state
+watch([noteFilter, subtypeFilter], async () => {
+    // Clear expanded cache when filters change
+    expandedData.value.clear();
+
+    // Reset expanded rows after DOM updates to avoid conflicts
+    await nextTick(() => {
+        expandedRows.value = [];
+    });
+});
+
 // Load transaction counts for summary view
 const loadTransactionCounts = async () => {
     try {
@@ -65,24 +84,48 @@ const loadTransactionCounts = async () => {
     }
 };
 
-// Lazy load transactions for a specific subtype
+// Lazy load transactions for a specific subtype with filtering
 const loadTransactionsForSubtype = async (subtypeId) => {
     if (expandedData.value.has(subtypeId)) {
-        return expandedData.value.get(subtypeId);
+        const cachedData = expandedData.value.get(subtypeId);
+        // Check if filters have changed and we need to refilter
+        if (cachedData.noteFilter !== noteFilter.value || cachedData.subtypeFilter !== subtypeFilter.value) {
+            // Filters changed, need to refetch and filter
+            expandedData.value.delete(subtypeId);
+        } else {
+            return cachedData;
+        }
     }
 
     expandedLoading.value.add(subtypeId);
 
     try {
         const response = await axios.get(`${baseurl}/transactions/?transaction_subtype=${subtypeId}`);
+        let filteredTransactions = response.data;
+
+        // Apply filters to the expanded transactions if any filters are active
+        if (noteFilter.value || subtypeFilter.value) {
+            filteredTransactions = filterTransactions(filteredTransactions);
+
+            // Apply note filter across all transactions if subtype filter allows this subtype
+            if (noteFilter.value) {
+                filteredTransactions = filteredTransactions.filter(t =>
+                    t.note && t.note.toLowerCase().includes(noteFilter.value.toLowerCase())
+                );
+            }
+        }
+
         const data = {
-            transactions: response.data,
+            transactions: filteredTransactions,
             pagination: {
                 page: 1,
                 limit: 50,
-                total: response.data.length
-            }
+                total: filteredTransactions.length
+            },
+            noteFilter: noteFilter.value, // Cache filter state
+            subtypeFilter: subtypeFilter.value
         };
+
         expandedData.value.set(subtypeId, data);
         return data;
     } catch (err) {
@@ -125,11 +168,14 @@ const getSubtypeById = (id) => {
     return transactionSubtypes.value.find(subtype => subtype.id === id);
 };
 
-// Group transactions by subtype
+// Group transactions by subtype (with filtering)
 const transactionsBySubtype = computed(() => {
+    // First, filter transactions based on current filters
+    const filteredTransactions = filterTransactions(transactions.value);
+
     const grouped = {};
 
-    transactions.value.forEach(transaction => {
+    filteredTransactions.forEach(transaction => {
         const subtypeId = transaction.transaction_subtype;
         const subtypeObj = getSubtypeById(subtypeId);
         if (!subtypeObj) return;
@@ -300,6 +346,25 @@ const onCsvUpload = async (event) => {
         csvUploading.value = false;
     }
 };
+
+// Filter functions
+const clearFilters = () => {
+    noteFilter.value = '';
+    subtypeFilter.value = null;
+};
+
+// Helper: Filter transactions based on current filters
+const filterTransactions = (transactionsList) => {
+    return transactionsList.filter(transaction => {
+        const matchesNote = !noteFilter.value ||
+            (transaction.note && transaction.note.toLowerCase().includes(noteFilter.value.toLowerCase()));
+
+        const matchesSubtype = !subtypeFilter.value ||
+            transaction.transaction_subtype === subtypeFilter.value;
+
+        return matchesNote && matchesSubtype;
+    });
+};
 </script>
 
 <template>
@@ -323,6 +388,42 @@ const onCsvUpload = async (event) => {
             <div class="insight-card">
                 <h3>Total Taxes</h3>
                 <p class="text-orange-600">{{ formatCurrency(totalTaxes) }}</p>
+            </div>
+        </div>
+
+        <!-- Global Filters -->
+        <div class="filter-section mb-4">
+            <div class="filter-controls">
+                <div class="filter-item">
+                    <label for="note-filter" class="filter-label">Search Notes:</label>
+                    <InputText
+                        id="note-filter"
+                        v-model="noteFilter"
+                        placeholder="Search transaction notes..."
+                        class="filter-input"
+                    />
+                </div>
+                <div class="filter-item">
+                    <label for="subtype-filter" class="filter-label">Filter by Type:</label>
+                    <Dropdown
+                        id="subtype-filter"
+                        v-model="subtypeFilter"
+                        :options="transactionSubtypes"
+                        option-label="name"
+                        option-value="id"
+                        placeholder="All types"
+                        show-clear
+                        class="filter-dropdown"
+                    />
+                </div>
+                <div class="filter-item">
+                    <Button
+                        label="Clear Filters"
+                        icon="pi pi-times"
+                        class="p-button-secondary p-button-sm"
+                        @click="clearFilters"
+                    />
+                </div>
             </div>
         </div>
 
@@ -532,5 +633,78 @@ export default {
     margin: 0;
     font-size: 24px;
     font-weight: bold;
+}
+
+.filter-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-controls {
+    display: flex;
+    gap: 20px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-item:last-child {
+    margin-left: auto;
+}
+
+.filter-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-input {
+    width: 250px;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    background: #ffffff;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.filter-dropdown {
+    width: 200px;
+}
+
+@media (max-width: 768px) {
+    .filter-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+
+    .filter-item:last-child {
+        margin-left: 0;
+    }
+
+    .filter-input {
+        width: 100%;
+    }
+
+    .filter-dropdown {
+        width: 100%;
+    }
 }
 </style>
