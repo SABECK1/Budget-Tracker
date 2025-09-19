@@ -347,9 +347,7 @@ const totalGainLoss = computed(() => {
   return totalInvestedSum > 0 ? ((totalValueSum - totalInvestedSum) / totalInvestedSum) * 100 : 0
 })
 const holdingsCount = computed(() => holdings.value.length)
-const topPerformer = computed(() =>
-  holdings.value.length > 0 ? holdings.value.reduce((max, holding) => holding.value > max.value ? holding : max).isin : ''
-)
+const topPerformer = ref('')
 const loading = ref(true)
 const error = ref('')
 const editingIndex = ref(null)
@@ -632,12 +630,16 @@ const fetchPortfolio = async () => {
     totalGainLoss.value = data.total_gain_loss || 0
     holdingsCount.value = data.holdings_count || 0
 
-    // Find top performer (stock with highest value)
+    // Find top performer (stock with highest daily percentage change)
     if (holdings.value.length > 0) {
-      const topHolding = holdings.value.reduce((max, holding) =>
-        holding.value > max.value ? holding : max
-      )
-      topPerformer.value = topHolding.isin
+      const topHolding = holdings.value
+        .filter(holding => holding.preday && holding.preday > 0) // Only consider holdings with valid preday
+        .reduce((max, holding) => {
+          const maxChange = ((max.current_price - max.preday) / max.preday) * 100
+          const holdingChange = ((holding.current_price - holding.preday) / holding.preday) * 100
+          return holdingChange > maxChange ? holding : max
+        }, holdings.value[0])
+      topPerformer.value = topHolding ? topHolding.name : ''
     }
 
     await setChartData()

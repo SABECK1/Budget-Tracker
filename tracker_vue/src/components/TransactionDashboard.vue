@@ -307,38 +307,22 @@ const onCsvUpload = async (event) => {
         <h2 class="text-center mb-4">Transaction Dashboard</h2>
 
         <!-- Metrics Cards -->
-        <div class="grid mb-4">
-            <div class="col-12 md:col-3">
-                <Card>
-                    <template #title>Total Transactions</template>
-                    <template #content>
-                        <div class="text-3xl font-bold text-primary">{{ totalTransactions }}</div>
-                    </template>
-                </Card>
+        <div class="metrics-cards mb-4">
+            <div class="insight-card">
+                <h3>Total Transactions</h3>
+                <p class="text-primary">{{ totalTransactions }}</p>
             </div>
-            <div class="col-12 md:col-3">
-                <Card>
-                    <template #title>Total Amount</template>
-                    <template #content>
-                        <div class="text-3xl font-bold text-green-600">{{ formatCurrency(totalAmount) }}</div>
-                    </template>
-                </Card>
+            <div class="insight-card">
+                <h3>Total Amount</h3>
+                <p class="text-green-600">{{ formatCurrency(totalAmount) }}</p>
             </div>
-            <div class="col-12 md:col-3">
-                <Card>
-                    <template #title>Total Fees</template>
-                    <template #content>
-                        <div class="text-3xl font-bold text-red-600">{{ formatCurrency(totalFees) }}</div>
-                    </template>
-                </Card>
+            <div class="insight-card">
+                <h3>Total Fees</h3>
+                <p class="text-red-600">{{ formatCurrency(totalFees) }}</p>
             </div>
-            <div class="col-12 md:col-3">
-                <Card>
-                    <template #title>Total Taxes</template>
-                    <template #content>
-                        <div class="text-3xl font-bold text-orange-600">{{ formatCurrency(totalTaxes) }}</div>
-                    </template>
-                </Card>
+            <div class="insight-card">
+                <h3>Total Taxes</h3>
+                <p class="text-orange-600">{{ formatCurrency(totalTaxes) }}</p>
             </div>
         </div>
 
@@ -519,19 +503,34 @@ export default {
 </script>
 
 <style scoped>
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
+.metrics-cards {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
 }
 
-.col-12 {
-    grid-column: span 12;
+.insight-card {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    flex: 1;
+    min-width: 200px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-@media (min-width: 768px) {
-    .md\:col-3 {
-        grid-column: span 3;
-    }
+.insight-card h3 {
+    margin: 0 0 10px 0;
+    color: #495057;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.insight-card p {
+    margin: 0;
+    font-size: 24px;
+    font-weight: bold;
 }
 </style>
