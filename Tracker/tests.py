@@ -10,6 +10,8 @@ import unittest
 from unittest.mock import Mock, patch, AsyncMock
 import asyncio
 from decimal import Decimal
+from django.utils import timezone
+from datetime import datetime
 
 # Import portfolio classes for testing
 import sys
@@ -154,7 +156,8 @@ class CSVUploadTestCase(APITestCase):
             user=self.user,
             amount=-50.00,
             note="Recurring Payment",
-            transaction_subtype=custom_subtype
+            transaction_subtype=custom_subtype,
+            created_at=timezone.now()
         )
 
         # Upload CSV with transaction having same note
@@ -186,7 +189,8 @@ class CSVUploadTestCase(APITestCase):
             amount=-100.00,
             isin="US0378331005",
             note="AAPL Purchase",
-            transaction_subtype=custom_stock_subtype
+            transaction_subtype=custom_stock_subtype,
+            created_at=timezone.now()
         )
 
         # Upload CSV with stock transaction having same ISIN
@@ -505,10 +509,26 @@ class PortfolioViewTestCase(APITestCase):
         self.assertEqual(data['total_value'], 0)
         self.assertEqual(data['holdings_count'], 0)
 
-    def test_portfolio_with_single_buy_transaction(self):
+    @patch('Tracker.views.fetch_multiple_prices')
+    def test_portfolio_with_single_buy_transaction(self, mock_fetch_prices):
         """Test portfolio calculation with a single buy transaction"""
         print(" Running: test_portfolio_with_single_buy_transaction")
         self.client.login(username='testuser', password='testpass123')
+
+        # Mock price fetch to return consistent test price
+        async def mock_price_fetch(*args, **kwargs):
+            return {
+                'US0378331005': {
+                    'isin': 'US0378331005',
+                    'name': 'Apple Inc.',
+                    'current_price': 18.0,
+                    'success': True,
+                    'intraday_data': [[1693526400000, 18.0]],
+                    'preday': [[1693439999000, 17.50]],
+                    'history_data': [[1693526400000, 18.0]]
+                }
+            }
+        mock_fetch_prices.side_effect = mock_price_fetch
 
         # Create a buy transaction
         Transaction.objects.create(
@@ -516,7 +536,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=-150.00,  # Negative for buy
             quantity=10,
             isin='US0378331005',  # AAPL
-            transaction_subtype=self.buy_subtype
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
         )
 
         response = self.client.get('/api/portfolio/')
@@ -526,22 +547,36 @@ class PortfolioViewTestCase(APITestCase):
         self.assertEqual(len(data['holdings']), 1)
         holding = data['holdings'][0]
 
-        print(holding)
-
         self.assertEqual(holding['isin'], 'US0378331005')
         self.assertEqual(holding['shares'], 10.0)
         self.assertEqual(holding['avg_price'], 15.0)  # 150 / 10
-        self.assertEqual(holding['current_price'], 15.0)
-        self.assertEqual(holding['value'], 150.0)  # 10 * 15
+        self.assertEqual(holding['current_price'], 18.0)  # Mocked price
+        self.assertEqual(holding['value'], 180.0)  # 10 * 18.0
         self.assertEqual(holding['total_invested'], 150.0)  # Original amount
 
-        self.assertEqual(data['total_value'], 150.0)
+        self.assertEqual(data['total_value'], 180.0)  # Should be current value with mocked price
         self.assertEqual(data['holdings_count'], 1)
 
-    def test_portfolio_with_buy_and_sell_same_stock(self):
+    @patch('Tracker.views.fetch_multiple_prices')
+    def test_portfolio_with_buy_and_sell_same_stock(self, mock_fetch_prices):
         """Test portfolio calculation with buy and sell transactions for same stock"""
         print(" Running: test_portfolio_with_buy_and_sell_same_stock")
         self.client.login(username='testuser', password='testpass123')
+
+        # Mock price fetch to return consistent test price
+        async def mock_price_fetch(*args, **kwargs):
+            return {
+                'US0378331005': {
+                    'isin': 'US0378331005',
+                    'name': 'Apple Inc.',
+                    'current_price': 16.0,
+                    'success': True,
+                    'intraday_data': [[1693526400000, 16.0]],
+                    'preday': [[1693439999000, 15.50]],
+                    'history_data': [[1693526400000, 16.0]]
+                }
+            }
+        mock_fetch_prices.side_effect = mock_price_fetch
 
         # Buy 10 shares at $15 each
         Transaction.objects.create(
@@ -549,7 +584,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=-150.00,
             quantity=10,
             isin='US0378331005',
-            transaction_subtype=self.buy_subtype
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
         )
 
         # Sell 3 shares at $16 each
@@ -558,10 +594,9 @@ class PortfolioViewTestCase(APITestCase):
             amount=48.00,  # 3 * 16
             quantity=3,
             isin='US0378331005',
-            transaction_subtype=self.sell_subtype
+            transaction_subtype=self.sell_subtype,
+            created_at=timezone.now()
         )
-
-        
 
         response = self.client.get('/api/portfolio/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -578,12 +613,30 @@ class PortfolioViewTestCase(APITestCase):
         # Avg price = |-102| / 7 = 102 / 7 ≈ 14.57
         expected_avg_price = 102 / 7
         self.assertAlmostEqual(holding['avg_price'], expected_avg_price, places=2)
-        self.assertAlmostEqual(holding['value'], 7 * expected_avg_price, places=2)
+        self.assertEqual(holding['current_price'], 16.0)  # Mocked price
+        self.assertEqual(holding['value'], 112.0)  # 7 * 16.0
+        self.assertEqual(data['total_value'], 112.0)  # 7 * 16.0
 
-    def test_portfolio_filters_zero_net_positions(self):
+    @patch('Tracker.views.fetch_multiple_prices')
+    def test_portfolio_filters_zero_net_positions(self, mock_fetch_prices):
         """Test that stocks with zero net positions are filtered out"""
         print(" Running: test_portfolio_filters_zero_net_positions")
         self.client.login(username='testuser', password='testpass123')
+
+        # Mock for MSFT only (AAPL won't be fetched since net quantity = 0)
+        async def mock_price_fetch(*args, **kwargs):
+            return {
+                'US5949181045': {
+                    'isin': 'US5949181045',
+                    'name': 'Microsoft Corp.',
+                    'current_price': 20.0,
+                    'success': True,
+                    'intraday_data': [[1693526400000, 20.0]],
+                    'preday': [[1693439999000, 19.50]],
+                    'history_data': [[1693526400000, 20.0]]
+                }
+            }
+        mock_fetch_prices.side_effect = mock_price_fetch
 
         # Buy 5 shares
         Transaction.objects.create(
@@ -591,7 +644,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=-100.00,
             quantity=5,
             isin='US0378331005',
-            transaction_subtype=self.buy_subtype
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
         )
 
         # Sell 5 shares (net position = 0)
@@ -600,7 +654,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=100.00,
             quantity=5,
             isin='US0378331005',
-            transaction_subtype=self.sell_subtype
+            transaction_subtype=self.sell_subtype,
+            created_at=timezone.now()
         )
 
         # Buy shares of different stock
@@ -609,7 +664,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=-200.00,
             quantity=10,
             isin='US5949181045',  # MSFT
-            transaction_subtype=self.buy_subtype
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
         )
 
         response = self.client.get('/api/portfolio/')
@@ -622,12 +678,49 @@ class PortfolioViewTestCase(APITestCase):
 
         self.assertEqual(holding['isin'], 'US5949181045')
         self.assertEqual(holding['shares'], 10.0)
+        self.assertEqual(holding['current_price'], 20.0)
+        self.assertEqual(holding['value'], 200.0)
+        self.assertEqual(data['total_value'], 200.0)
         self.assertEqual(data['holdings_count'], 1)
 
-    def test_portfolio_with_multiple_stocks(self):
+    @patch('Tracker.views.fetch_multiple_prices')
+    def test_portfolio_with_multiple_stocks(self, mock_fetch_prices):
         """Test portfolio calculation with multiple different stocks"""
         print(" Running: test_portfolio_with_multiple_stocks")
         self.client.login(username='testuser', password='testpass123')
+
+        # Mock price fetch to return consistent test prices
+        async def mock_price_fetch(*args, **kwargs):
+            return {
+                'US0378331005': {
+                    'isin': 'US0378331005',
+                    'name': 'Apple Inc.',
+                    'current_price': 19.0,
+                    'success': True,
+                    'intraday_data': [[1693526400000, 19.0]],
+                    'preday': [[1693439999000, 18.50]],
+                    'history_data': [[1693526400000, 19.0]]
+                },
+                'US5949181045': {
+                    'isin': 'US5949181045',
+                    'name': 'Microsoft Corp.',
+                    'current_price': 25.0,
+                    'success': True,
+                    'intraday_data': [[1693526400000, 25.0]],
+                    'preday': [[1693439999000, 24.50]],
+                    'history_data': [[1693526400000, 25.0]]
+                },
+                'US02079K3059': {
+                    'isin': 'US02079K3059',
+                    'name': 'Alphabet Inc.',
+                    'current_price': 30.0,
+                    'success': True,
+                    'intraday_data': [[1693526400000, 30.0]],
+                    'preday': [[1693439999000, 29.50]],
+                    'history_data': [[1693526400000, 30.0]]
+                }
+            }
+        mock_fetch_prices.side_effect = mock_price_fetch
 
         # AAPL: Buy 10 shares at $15
         Transaction.objects.create(
@@ -635,7 +728,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=-150.00,
             quantity=10,
             isin='US0378331005',
-            transaction_subtype=self.buy_subtype
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
         )
 
         # MSFT: Buy 5 shares at $20
@@ -644,7 +738,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=-100.00,
             quantity=5,
             isin='US5949181045',
-            transaction_subtype=self.buy_subtype
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
         )
 
         # GOOGL: Buy 8 shares at $25
@@ -653,7 +748,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=-200.00,
             quantity=8,
             isin='US02079K3059',
-            transaction_subtype=self.buy_subtype
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
         )
 
         response = self.client.get('/api/portfolio/')
@@ -663,20 +759,35 @@ class PortfolioViewTestCase(APITestCase):
         self.assertEqual(len(data['holdings']), 3)
         self.assertEqual(data['holdings_count'], 3)
 
-        # Check total value
-        expected_total = (10 * 15) + (5 * 20) + (8 * 25)  # 150 + 100 + 200 = 450
-        self.assertEqual(data['total_value'], expected_total)
+        # Check total value: (10*19) + (5*25) + (8*30) = 190 + 125 + 240 = 555
+        self.assertEqual(data['total_value'], 555.0)
 
-        # Check that all ISINs are present
-        isins = [holding['isin'] for holding in data['holdings']]
-        self.assertIn('US0378331005', isins)  # AAPL
-        self.assertIn('US5949181045', isins)  # MSFT
-        self.assertIn('US02079K3059', isins)  # GOOGL
+        # Verify specific holdings
+        holdings_by_isin = {h['isin']: h for h in data['holdings']}
+        self.assertAlmostEqual(holdings_by_isin['US0378331005']['value'], 190.0, places=2)
+        self.assertAlmostEqual(holdings_by_isin['US5949181045']['value'], 125.0, places=2)
+        self.assertAlmostEqual(holdings_by_isin['US02079K3059']['value'], 240.0, places=2)
 
-    def test_portfolio_ignores_non_stock_transactions(self):
+    @patch('Tracker.views.fetch_multiple_prices')
+    def test_portfolio_ignores_non_stock_transactions(self, mock_fetch_prices):
         """Test that non-stock transactions are ignored in portfolio calculation"""
         print(" Running: test_portfolio_ignores_non_stock_transactions")
         self.client.login(username='testuser', password='testpass123')
+
+        # Mock price fetch for the stock
+        async def mock_price_fetch(*args, **kwargs):
+            return {
+                'US0378331005': {
+                    'isin': 'US0378331005',
+                    'name': 'Apple Inc.',
+                    'current_price': 22.0,
+                    'success': True,
+                    'intraday_data': [[1693526400000, 22.0]],
+                    'preday': [[1693439999000, 21.50]],
+                    'history_data': [[1693526400000, 22.0]]
+                }
+            }
+        mock_fetch_prices.side_effect = mock_price_fetch
 
         # Create regular expense transaction (no ISIN)
         regular_expense = TransactionSubType.objects.create(
@@ -688,7 +799,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=-50.00,
             quantity=0,
             isin='',  # Empty ISIN
-            transaction_subtype=regular_expense
+            transaction_subtype=regular_expense,
+            created_at=timezone.now()
         )
 
         # Create stock transaction
@@ -697,7 +809,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=-100.00,
             quantity=5,
             isin='US0378331005',
-            transaction_subtype=self.buy_subtype
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
         )
 
         response = self.client.get('/api/portfolio/')
@@ -706,13 +819,32 @@ class PortfolioViewTestCase(APITestCase):
         data = response.json()
         # Should only show the stock transaction
         self.assertEqual(len(data['holdings']), 1)
-        self.assertEqual(data['holdings'][0]['isin'], 'US0378331005')
-        self.assertEqual(data['total_value'], 100.0)  # 5 * 20
+        holding = data['holdings'][0]
+        self.assertEqual(holding['isin'], 'US0378331005')
+        self.assertEqual(holding['current_price'], 22.0)
+        self.assertEqual(holding['value'], 110.0)  # 5 * 22.0
+        self.assertEqual(data['total_value'], 110.0)  # 5 * 22.0
 
-    def test_portfolio_with_fractional_shares(self):
+    @patch('Tracker.views.fetch_multiple_prices')
+    def test_portfolio_with_fractional_shares(self, mock_fetch_prices):
         """Test portfolio calculation with fractional share quantities"""
         print(" Running: test_portfolio_with_fractional_shares")
         self.client.login(username='testuser', password='testpass123')
+
+        # Mock price fetch for the stock
+        async def mock_price_fetch(*args, **kwargs):
+            return {
+                'US0378331005': {
+                    'isin': 'US0378331005',
+                    'name': 'Apple Inc.',
+                    'current_price': 14.5,
+                    'success': True,
+                    'intraday_data': [[1693526400000, 14.5]],
+                    'preday': [[1693439999000, 14.0]],
+                    'history_data': [[1693526400000, 14.5]]
+                }
+            }
+        mock_fetch_prices.side_effect = mock_price_fetch
 
         # Buy fractional shares
         Transaction.objects.create(
@@ -720,7 +852,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=-157.50,  # 12.5 * 12.6
             quantity=12.5,
             isin='US0378331005',
-            transaction_subtype=self.buy_subtype
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
         )
 
         # Sell some fractional shares
@@ -729,7 +862,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=50.40,  # 4 * 12.6
             quantity=4,
             isin='US0378331005',
-            transaction_subtype=self.sell_subtype
+            transaction_subtype=self.sell_subtype,
+            created_at=timezone.now()
         )
 
         response = self.client.get('/api/portfolio/')
@@ -740,15 +874,34 @@ class PortfolioViewTestCase(APITestCase):
         holding = data['holdings'][0]
 
         self.assertEqual(holding['shares'], 8.5)  # 12.5 - 4
+        self.assertEqual(holding['current_price'], 14.5)  # Mocked price
+        self.assertEqual(holding['value'], 123.25)  # 8.5 * 14.5
+        self.assertEqual(data['total_value'], 123.25)  # 8.5 * 14.5
         # Total invested = -157.50 + 50.40 = -107.10
         # Avg price = |107.10| / 8.5 ≈ 12.6
         expected_avg_price = 107.10 / 8.5
         self.assertAlmostEqual(holding['avg_price'], expected_avg_price, places=2)
 
-    def test_portfolio_calculation_with_fees_and_taxes(self):
+    @patch('Tracker.views.fetch_multiple_prices')
+    def test_portfolio_calculation_with_fees_and_taxes(self, mock_fetch_prices):
         """Test that fees and taxes are properly included in calculations"""
         print(" Running: test_portfolio_calculation_with_fees_and_taxes")
         self.client.login(username='testuser', password='testpass123')
+
+        # Mock price fetch for the stock
+        async def mock_price_fetch(*args, **kwargs):
+            return {
+                'US0378331005': {
+                    'isin': 'US0378331005',
+                    'name': 'Apple Inc.',
+                    'current_price': 28.0,
+                    'success': True,
+                    'intraday_data': [[1693526400000, 28.0]],
+                    'preday': [[1693439999000, 27.50]],
+                    'history_data': [[1693526400000, 28.0]]
+                }
+            }
+        mock_fetch_prices.side_effect = mock_price_fetch
 
         # Buy with fees
         Transaction.objects.create(
@@ -758,14 +911,14 @@ class PortfolioViewTestCase(APITestCase):
             isin='US0378331005',
             fee=5.00,
             tax=0.00,
-            transaction_subtype=self.buy_subtype
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
         )
 
         response = self.client.get('/api/portfolio/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         data = response.json()
-        print(data)
         holding = data['holdings'][0]
 
         # Average price should be based on total amount including fees
@@ -773,10 +926,30 @@ class PortfolioViewTestCase(APITestCase):
         # Avg price = |105| / 10 = 10.5
         self.assertEqual(holding['avg_price'], 10.5)
         self.assertEqual(holding['total_invested'], 105.0)
+        self.assertEqual(holding['current_price'], 28.0)  # Mocked price
+        self.assertEqual(holding['value'], 280.0)  # 10 * 28.0
+        self.assertEqual(data['total_value'], 280.0)  # 10 * 28.0
 
-    def test_portfolio_user_isolation(self):
+    @patch('Tracker.views.fetch_multiple_prices')
+    def test_portfolio_user_isolation(self, mock_fetch_prices):
         """Test that users only see their own portfolio data"""
         print(" Running: test_portfolio_user_isolation")
+
+        # Mock price fetch for AAPL (User 1's stock)
+        async def mock_price_fetch(*args, **kwargs):
+            return {
+                'US0378331005': {
+                    'isin': 'US0378331005',
+                    'name': 'Apple Inc.',
+                    'current_price': 26.0,
+                    'success': True,
+                    'intraday_data': [[1693526400000, 26.0]],
+                    'preday': [[1693439999000, 25.50]],
+                    'history_data': [[1693526400000, 26.0]]
+                }
+            }
+        mock_fetch_prices.side_effect = mock_price_fetch
+
         # Create second user
         user2 = User.objects.create_user(
             username='user2',
@@ -787,10 +960,11 @@ class PortfolioViewTestCase(APITestCase):
         # User 1 buys AAPL
         Transaction.objects.create(
             user=self.user,
-            amount=-100.00,
+            amount=-130.00,  # 5 shares at $26
             quantity=5,
             isin='US0378331005',
-            transaction_subtype=self.buy_subtype
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
         )
 
         # User 2 buys MSFT
@@ -799,7 +973,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=-200.00,
             quantity=10,
             isin='US5949181045',
-            transaction_subtype=self.buy_subtype
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
         )
 
         # Login as user 1
@@ -808,8 +983,11 @@ class PortfolioViewTestCase(APITestCase):
 
         data = response.json()
         self.assertEqual(len(data['holdings']), 1)
-        self.assertEqual(data['holdings'][0]['isin'], 'US0378331005')
-        self.assertEqual(data['total_value'], 100.0)  # 5 * 20
+        holding = data['holdings'][0]
+        self.assertEqual(holding['isin'], 'US0378331005')
+        self.assertEqual(holding['current_price'], 26.0)
+        self.assertEqual(holding['value'], 130.0)  # 5 * 26.0
+        self.assertEqual(data['total_value'], 130.0)  # 5 * 26.0
 
     def test_portfolio_with_only_sell_transactions(self):
         """Test portfolio with only sell transactions (should be empty)"""
@@ -822,7 +1000,8 @@ class PortfolioViewTestCase(APITestCase):
             amount=100.00,
             quantity=5,
             isin='US0378331005',
-            transaction_subtype=self.sell_subtype
+            transaction_subtype=self.sell_subtype,
+            created_at=timezone.now()
         )
 
         response = self.client.get('/api/portfolio/')
@@ -833,3 +1012,383 @@ class PortfolioViewTestCase(APITestCase):
         self.assertEqual(len(data['holdings']), 0)
         self.assertEqual(data['total_value'], 0)
         self.assertEqual(data['holdings_count'], 0)
+
+
+class AdjustHoldingTestCase(APITestCase):
+    """Test cases for the adjust_holding_view API endpoint"""
+
+    def setUp(self):
+        # Create test user
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpass123'
+        )
+
+        # Create transaction types
+        self.income_type = TransactionType.objects.create(
+            name="Income",
+            expense_factor=1
+        )
+        self.expense_type = TransactionType.objects.create(
+            name="Expense",
+            expense_factor=-1
+        )
+
+        # Create transaction subtypes for stocks
+        self.buy_subtype = TransactionSubType.objects.create(
+            transaction_type=self.expense_type,
+            name="Buy"
+        )
+        self.sell_subtype = TransactionSubType.objects.create(
+            transaction_type=self.income_type,
+            name="Sell"
+        )
+
+    def test_adjust_holding_requires_authentication(self):
+        """Test that adjust holding endpoint requires authentication"""
+        response = self.client.post('/api/adjust-holding/', {})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_adjust_holding_buy_additional_shares(self):
+        """Test buying additional shares for existing position"""
+        self.client.login(username='testuser', password='testpass123')
+
+        # Create initial buy transaction
+        Transaction.objects.create(
+            user=self.user,
+            amount=-100.00,  # 5 shares at $20
+            quantity=5,
+            isin='US0378331005',
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
+        )
+
+        # Adjust to 10 shares at current price $25
+        response = self.client.post('/api/adjust-holding/', {
+            'isin': 'US0378331005',
+            'new_shares': 10.0,
+            'current_price': 25.0
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('Holding adjusted successfully', response.json()['message'])
+
+        # Check new transaction was created
+        new_transaction = Transaction.objects.filter(user=self.user, isin='US0378331005').latest('created_at')
+        self.assertEqual(new_transaction.transaction_subtype, self.buy_subtype)
+        self.assertEqual(new_transaction.amount, -250.00)  # 5 * 25 * -1
+        self.assertEqual(new_transaction.quantity, 5.0)
+
+    def test_adjust_holding_sell_shares(self):
+        """Test selling portion of existing position"""
+        self.client.login(username='testuser', password='testpass123')
+
+        # Create initial buy transaction
+        Transaction.objects.create(
+            user=self.user,
+            amount=-200.00,  # 10 shares at $20
+            quantity=10,
+            isin='US0378331005',
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
+        )
+
+        # Adjust to 5 shares at current price $25
+        response = self.client.post('/api/adjust-holding/', {
+            'isin': 'US0378331005',
+            'new_shares': 5.0,
+            'current_price': 25.0
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check new transaction was created
+        new_transaction = Transaction.objects.filter(user=self.user, isin='US0378331005').latest('created_at')
+        self.assertEqual(new_transaction.transaction_subtype, self.sell_subtype)
+        self.assertEqual(new_transaction.amount, 125.00)  # 5 * 25
+        self.assertEqual(new_transaction.quantity, 5.0)
+
+    def test_adjust_holding_no_change(self):
+        """Test when no change is needed in shares"""
+        self.client.login(username='testuser', password='testpass123')
+
+        # Create initial buy transaction
+        Transaction.objects.create(
+            user=self.user,
+            amount=-100.00,  # 5 shares at $20
+            quantity=5,
+            isin='US0378331005',
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
+        )
+
+        # Adjust to same number of shares
+        response = self.client.post('/api/adjust-holding/', {
+            'isin': 'US0378331005',
+            'new_shares': 5.0,
+            'current_price': 25.0
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('No change in shares', response.json()['message'])
+
+    def test_adjust_holding_create_new_position(self):
+        """Test creating a new position from zero shares"""
+        self.client.login(username='testuser', password='testpass123')
+
+        # Start with a new ISIN, no existing transactions
+        response = self.client.post('/api/adjust-holding/', {
+            'isin': 'US5949181045',  # MSFT
+            'new_shares': 10.0,
+            'current_price': 30.0
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check new transaction was created
+        new_transaction = Transaction.objects.filter(user=self.user, isin='US5949181045').latest('created_at')
+        self.assertEqual(new_transaction.transaction_subtype, self.buy_subtype)
+        self.assertEqual(new_transaction.amount, -300.00)  # 10 * 30 * -1
+        self.assertEqual(new_transaction.quantity, 10.0)
+
+    def test_adjust_holding_negative_shares_error(self):
+        """Test error when trying to adjust to negative shares"""
+        self.client.login(username='testuser', password='testpass123')
+
+        response = self.client.post('/api/adjust-holding/', {
+            'isin': 'US0378331005',
+            'new_shares': -5.0,
+            'current_price': 20.0
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('Shares cannot be negative', response.json()['error'])
+
+    def test_adjust_holding_missing_isin_error(self):
+        """Test error when ISIN is missing"""
+        self.client.login(username='testuser', password='testpass123')
+
+        response = self.client.post('/api/adjust-holding/', {
+            'new_shares': 10.0,
+            'current_price': 20.0
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('ISIN is required', response.json()['error'])
+
+    def test_adjust_holding_invalid_json(self):
+        """Test handling of invalid JSON"""
+        self.client.login(username='testuser', password='testpass123')
+
+        response = self.client.post(
+            '/api/adjust-holding/',
+            'invalid json',
+            content_type='application/json'
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('Invalid JSON', response.json()['error'])
+
+    # Commenting out as this scenario cannot occur with current setup since subtypes are forced to be buy or sell depending on share change
+    # def test_adjust_holding_subtype_not_exist_error(self):
+    #     """Test handling when required transaction subtypes don't exist"""
+    #     self.client.login(username='testuser', password='testpass123')
+
+    #     # Delete buy subtype to simulate error
+    #     self.buy_subtype.delete()
+
+    #     response = self.client.post('/api/adjust-holding/', {
+    #         'isin': 'US0378331005',
+    #         'new_shares': 10.0,
+    #         'current_price': 20.0
+    #     })
+
+    #     self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #     self.assertIn('Required transaction subtypes not found', response.json()['error'])
+
+    def test_adjust_holding_with_note(self):
+        """Test adjusting holding with a custom note"""
+        self.client.login(username='testuser', password='testpass123')
+
+        response = self.client.post('/api/adjust-holding/', {
+            'isin': 'US0378331005',
+            'new_shares': 10.0,
+            'current_price': 25.0,
+            'note': 'Manual adjustment for accounting'
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check note was saved
+        new_transaction = Transaction.objects.filter(user=self.user, isin='US0378331005').latest('created_at')
+        self.assertEqual(new_transaction.note, 'Manual adjustment for accounting')
+
+
+class PortfolioWithMockPriceTestCase(APITestCase):
+    """Test cases for portfolio_view with mocked stock price fetching"""
+
+    def setUp(self):
+        # Create test user
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpass123'
+        )
+
+        # Create transaction types
+        self.income_type = TransactionType.objects.create(
+            name="Income",
+            expense_factor=1
+        )
+        self.expense_type = TransactionType.objects.create(
+            name="Expense",
+            expense_factor=-1
+        )
+
+        # Create transaction subtypes for stocks
+        self.buy_subtype = TransactionSubType.objects.create(
+            transaction_type=self.expense_type,
+            name="Buy"
+        )
+        self.sell_subtype = TransactionSubType.objects.create(
+            transaction_type=self.income_type,
+            name="Sell"
+        )
+
+    @patch('Tracker.views.fetch_multiple_prices')
+    def test_portfolio_with_fetched_prices(self, mock_fetch_prices):
+        """Test portfolio with actual fetched prices"""
+        self.client.login(username='testuser', password='testpass123')
+
+        # Create a buy transaction
+        Transaction.objects.create(
+            user=self.user,
+            amount=-150.00,  # 10 shares at $15
+            quantity=10,
+            isin='US0378331005',
+            transaction_subtype=self.buy_subtype,
+            created_at=timezone.now()
+        )
+
+        # Mock the async function to return data in the format expected by the view
+        import asyncio
+        async def mock_async_fetch(*args, **kwargs):
+            # Return as dictionary with ISIN as keys, matching the format used in view
+            return {
+                'US0378331005': {
+                    'isin': 'US0378331005',
+                    'name': 'Apple Inc.',
+                    'current_price': 18.50,
+                    'success': True,
+                    'intraday_data': [[1693526400000, 18.50]],
+                    'preday': [[1693439999000, 18.00]],
+                    'history_data': [[1693526400000, 18.50]]
+                }
+            }
+
+        mock_fetch_prices.side_effect = mock_async_fetch
+
+        response = self.client.get('/api/portfolio/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = response.json()
+        holding = data['holdings'][0]
+
+        self.assertEqual(holding['name'], 'Apple Inc.')
+        self.assertEqual(holding['current_price'], 18.50)
+        self.assertEqual(holding['value'], 185.0)  # 10 * 18.50
+        self.assertEqual(data['total_value'], 185.0)
+
+    @patch('Tracker.views.fetch_multiple_prices')
+    @patch('Tracker.views.get_history')
+    def test_portfolio_price_fetch_failure_fallback(self, mock_get_history, mock_fetch_prices):
+        """Test portfolio when price fetch fails, falls back to average price"""
+        self.client.login(username='testuser', password='testpass123')
+
+        # Create a buy transaction
+        Transaction.objects.create(
+            user=self.user,
+            amount=-100.00,  # 5 shares at $20
+            quantity=5,
+            isin='US0378331005',
+            transaction_subtype=self.buy_subtype
+        )
+
+        # Mock failed concurrent price fetch
+        mock_fetch_prices.side_effect = Exception("Price fetch failed")
+
+        # Mock successful synchronous fallback fetch
+        mock_get_history.return_value = ("Apple Inc.", [[datetime.now().timestamp() * 1000, 18.50]])
+
+        response = self.client.get('/api/portfolio/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = response.json()
+        holding = data['holdings'][0]
+
+        # Should use the real retrieved price from fallback
+        self.assertEqual(holding['current_price'], 18.50)
+        self.assertEqual(holding['value'], 92.5)
+        self.assertEqual(holding['name'], 'Apple Inc.')
+
+    @patch('Tracker.views.fetch_multiple_prices')
+    def test_portfolio_multiple_stocks_with_prices(self, mock_fetch_prices):
+        """Test portfolio with multiple stocks and different price scenarios"""
+        self.client.login(username='testuser', password='testpass123')
+
+        # Create multiple transactions
+        Transaction.objects.create(
+            user=self.user,
+            amount=-100.00,  # AAPL: 5 shares at $20
+            quantity=5,
+            isin='US0378331005',
+            transaction_subtype=self.buy_subtype
+        )
+        Transaction.objects.create(
+            user=self.user,
+            amount=-60.00,  # MSFT: 3 shares at $20
+            quantity=3,
+            isin='US5949181045',
+            transaction_subtype=self.buy_subtype
+        )
+
+        # Mock price fetch - return success for MSFT and failure for AAPL
+        async def mock_async_fetch_multistock(*args, **kwargs):
+            return {
+                'US0378331005': {
+                    'isin': 'US0378331005',
+                    'name': 'Error (US0378331005)',
+                    'current_price': None,
+                    'success': False
+                },
+                'US5949181045': {
+                    'isin': 'US5949181045',
+                    'name': 'Microsoft Corp.',
+                    'current_price': 25.00,
+                    'success': True,
+                    'intraday_data': [[1693526400000, 25.00]],
+                    'preday': [[1693439999000, 24.50]],
+                    'history_data': [[1693526400000, 25.00]]
+                }
+            }
+
+        mock_fetch_prices.side_effect = mock_async_fetch_multistock
+
+        response = self.client.get('/api/portfolio/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = response.json()
+        self.assertEqual(len(data['holdings']), 2)
+
+        # Check AAPL (fallback price)
+        aapl_holding = next(h for h in data['holdings'] if h['isin'] == 'US0378331005')
+        self.assertEqual(aapl_holding['current_price'], 20.0)
+        self.assertEqual(aapl_holding['value'], 100.0)
+        self.assertEqual(aapl_holding['name'], 'Unknown (US0378331005)')
+
+        # Check MSFT (successful fetch)
+        msft_holding = next(h for h in data['holdings'] if h['isin'] == 'US5949181045')
+        self.assertEqual(msft_holding['name'], 'Microsoft Corp.')
+        self.assertEqual(msft_holding['current_price'], 25.00)
+        self.assertEqual(msft_holding['value'], 75.0)  # 3 * 25

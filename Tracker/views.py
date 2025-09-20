@@ -355,6 +355,9 @@ def portfolio_view(request):
             # Fallback to avg_price if concurrent fetch failed
             current_price = avg_price
             name = f"Unknown ({isin})"
+            intraday_data = []
+            preday = []
+            history = []
 
         # Get transaction data for this holding to show on chart
         transactions = Transaction.objects.filter(user=request.user, isin=isin).order_by('created_at')
