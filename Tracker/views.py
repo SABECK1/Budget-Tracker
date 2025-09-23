@@ -505,11 +505,19 @@ def adjust_holding_view(request):
         )
 
     try:
+        print("Adjust holding request body:", request.body)
         data = json.loads(request.body.decode("utf-8"))
+        print(data)
         isin = data.get("isin")
         new_shares = float(data.get("new_shares", 0))
         current_price = float(data.get("current_price", 0))
         note = data.get("note", "Adjusted holding manually")
+
+        # Additional validation
+        if "new_shares" not in data:
+            return JsonResponse({"error": "new_shares is required"}, status=400)
+        if "current_price" not in data:
+            return JsonResponse({"error": "current_price is required"}, status=400)
 
         if not isin:
             return JsonResponse({"error": "ISIN is required"}, status=400)
@@ -576,8 +584,8 @@ def adjust_holding_view(request):
 
         return JsonResponse({"message": "Holding adjusted successfully"}, status=200)
 
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except json.JSONDecodeError as e:
+        return JsonResponse({"error": f"Invalid JSON {e}"}, status=400)
     except TransactionSubType.DoesNotExist:
         return JsonResponse(
             {"error": "Required transaction subtypes not found"}, status=500

@@ -5,6 +5,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from .models import Transaction, TransactionType, TransactionSubType
 import io
+import json
 import csv
 import unittest
 from unittest.mock import Mock, patch, AsyncMock
@@ -1065,11 +1066,10 @@ class AdjustHoldingTestCase(APITestCase):
         )
 
         # Adjust to 10 shares at current price $25
-        response = self.client.post('/api/adjust-holding/', {
-            'isin': 'US0378331005',
-            'new_shares': 10.0,
-            'current_price': 25.0
-        })
+        response = self.client.post('/api/adjust-holding/',
+            data=json.dumps({"isin": "US0378331005", "new_shares": "10.0", "current_price": "25.0"}),
+            content_type='application/json'
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('Holding adjusted successfully', response.json()['message'])
@@ -1077,7 +1077,7 @@ class AdjustHoldingTestCase(APITestCase):
         # Check new transaction was created
         new_transaction = Transaction.objects.filter(user=self.user, isin='US0378331005').latest('created_at')
         self.assertEqual(new_transaction.transaction_subtype, self.buy_subtype)
-        self.assertEqual(new_transaction.amount, -250.00)  # 5 * 25 * -1
+        self.assertEqual(new_transaction.amount, Decimal('-125.00'))  # 5 * 25 * -1 = -125.00 not -250.00
         self.assertEqual(new_transaction.quantity, 5.0)
 
     def test_adjust_holding_sell_shares(self):
@@ -1095,11 +1095,14 @@ class AdjustHoldingTestCase(APITestCase):
         )
 
         # Adjust to 5 shares at current price $25
-        response = self.client.post('/api/adjust-holding/', {
-            'isin': 'US0378331005',
-            'new_shares': 5.0,
-            'current_price': 25.0
-        })
+        response = self.client.post('/api/adjust-holding/', 
+            data=json.dumps({
+                'isin': 'US0378331005',
+                'new_shares': '5.0',
+                'current_price': '25.0'
+            }),
+            content_type='application/json'
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -1124,11 +1127,14 @@ class AdjustHoldingTestCase(APITestCase):
         )
 
         # Adjust to same number of shares
-        response = self.client.post('/api/adjust-holding/', {
-            'isin': 'US0378331005',
-            'new_shares': 5.0,
-            'current_price': 25.0
-        })
+        response = self.client.post('/api/adjust-holding/', 
+            data=json.dumps({
+                'isin': 'US0378331005',
+                'new_shares': '5.0',
+                'current_price': '25.0'
+            }),
+            content_type='application/json'
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('No change in shares', response.json()['message'])
@@ -1138,11 +1144,14 @@ class AdjustHoldingTestCase(APITestCase):
         self.client.login(username='testuser', password='testpass123')
 
         # Start with a new ISIN, no existing transactions
-        response = self.client.post('/api/adjust-holding/', {
-            'isin': 'US5949181045',  # MSFT
-            'new_shares': 10.0,
-            'current_price': 30.0
-        })
+        response = self.client.post('/api/adjust-holding/', 
+            data=json.dumps({
+                'isin': 'US5949181045',  # MSFT
+                'new_shares': '10.0',
+                'current_price': '30.0'
+            }),
+            content_type='application/json'
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -1156,11 +1165,14 @@ class AdjustHoldingTestCase(APITestCase):
         """Test error when trying to adjust to negative shares"""
         self.client.login(username='testuser', password='testpass123')
 
-        response = self.client.post('/api/adjust-holding/', {
-            'isin': 'US0378331005',
-            'new_shares': -5.0,
-            'current_price': 20.0
-        })
+        response = self.client.post('/api/adjust-holding/', 
+            data=json.dumps({
+                'isin': 'US0378331005',
+                'new_shares': '-5.0',
+                'current_price': '20.0'
+            }),
+            content_type='application/json'
+        )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('Shares cannot be negative', response.json()['error'])
@@ -1169,10 +1181,13 @@ class AdjustHoldingTestCase(APITestCase):
         """Test error when ISIN is missing"""
         self.client.login(username='testuser', password='testpass123')
 
-        response = self.client.post('/api/adjust-holding/', {
-            'new_shares': 10.0,
-            'current_price': 20.0
-        })
+        response = self.client.post('/api/adjust-holding/', 
+            data=json.dumps({
+                'new_shares': '10.0',
+                'current_price': '20.0'
+            }),
+            content_type='application/json'
+        )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('ISIN is required', response.json()['error'])
@@ -1211,12 +1226,15 @@ class AdjustHoldingTestCase(APITestCase):
         """Test adjusting holding with a custom note"""
         self.client.login(username='testuser', password='testpass123')
 
-        response = self.client.post('/api/adjust-holding/', {
-            'isin': 'US0378331005',
-            'new_shares': 10.0,
-            'current_price': 25.0,
-            'note': 'Manual adjustment for accounting'
-        })
+        response = self.client.post('/api/adjust-holding/', 
+            data=json.dumps({
+                'isin': 'US0378331005',
+                'new_shares': '10.0',
+                'current_price': '25.0',
+                'note': 'Manual adjustment for accounting'
+            }),
+            content_type='application/json'
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
