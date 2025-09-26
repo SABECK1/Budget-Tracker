@@ -8,6 +8,7 @@ import App from './App.vue'
 import { useAuthStore } from './store/auth'
 import { definePreset } from '@primeuix/themes';
 import 'primeicons/primeicons.css';
+import { ToastService } from 'primevue';
 
  
 const stylePreset = definePreset(Aura, {
@@ -57,6 +58,7 @@ app.use(PrimeVue, {
 });
 
 app.use(createPinia())
+app.use(ToastService)
 app.use(router)
 // app.use(PrimeVue, {
 //     theme: {

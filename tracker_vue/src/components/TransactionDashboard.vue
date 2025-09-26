@@ -8,6 +8,8 @@ import ProgressSpinner from 'primevue/progressspinner';
 import InputText from "primevue/inputtext";
 import Dropdown from "primevue/dropdown";
 import Button from "primevue/button";
+import Toast from 'primevue/toast';
+import { useToast } from 'primevue/usetoast';
 // import { FilterMatchMode } from "@primevue/core/api";
 import axios from "axios";
 import Cookies from 'js-cookie';
@@ -17,6 +19,8 @@ axios.defaults.xsrfHeaderName = "X-CSRFToken";
 axios.defaults.withCredentials = true;
 
 const baseurl = process.env.VUE_APP_API_BASE_URL;
+
+const toast = useToast();
 
 // State
 const transactions = ref([]);
@@ -307,7 +311,35 @@ const saveEdit = async (transaction) => {
 
     } catch (err) {
         console.error("Error updating transaction:", err);
-        alert("Error updating transaction. Please try again.");
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Error updating transaction. Please try again.', life: 5000 });
+    }
+};
+
+// Delete function
+const deleteTransaction = async (transaction) => {
+    if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        await axios.delete(`${baseurl}/transactions/${transaction.id}/`, {
+            headers: {
+                'X-CSRFToken': Cookies.get('csrftoken'),
+            },
+            withCredentials: true,
+        });
+
+        // Clear all cached data since deletion may have affected other subtypes
+        expandedData.value.clear();
+
+        // Refresh the data to update the grouped view
+        const transactionsRes = await axios.get(`${baseurl}/transactions/`);
+        transactions.value = transactionsRes.data;
+
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Transaction deleted successfully.', life: 3000 });
+    } catch (err) {
+        console.error("Error deleting transaction:", err);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Error deleting transaction. Please try again.', life: 5000 });
     }
 };
 
@@ -549,10 +581,16 @@ const filterTransactions = (transactionsList) => {
                                                 </button>
                                             </div>
                                         </div>
-                                        <button v-else @click="startEdit(slotProps.data)"
-                                            class="btn btn-primary btn-sm">
-                                            Edit
-                                        </button>
+                                        <div v-else class="d-flex gap-2">
+                                            <button @click="startEdit(slotProps.data)"
+                                                class="btn btn-primary btn-sm">
+                                                Edit
+                                            </button>
+                                            <button @click="deleteTransaction(slotProps.data)"
+                                                class="btn btn-danger btn-sm">
+                                                Delete
+                                            </button>
+                                        </div>
                                     </template>
                                 </Column>
                             </DataTable>
@@ -594,6 +632,7 @@ const filterTransactions = (transactionsList) => {
                 </div>
             </template>
         </Card>
+        <Toast />
     </div>
 </template>
 

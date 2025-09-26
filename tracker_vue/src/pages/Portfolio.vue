@@ -178,6 +178,7 @@
         </template>
       </Dialog> -->
     </div>
+    <Toast />
   </div>
 </template>
 
@@ -193,6 +194,10 @@ import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
 import { FilterMatchMode } from '@primevue/core/api'
 import Chart from 'primevue/chart'
+import Toast from 'primevue/toast'
+import { useToast } from 'primevue/usetoast'
+
+const toast = useToast()
 
   const periodDefinitions = {
     '1w': 7 * 24 * 60 * 60 * 1000,      // 1 week
@@ -690,23 +695,24 @@ const saveEdit = async (holding) => {
     const newShares = parseFloat(editingShares.value)
 
     if (isNaN(newShares)) {
-      alert('Please enter a valid number of shares')
+      toast.add({ severity: 'warn', summary: 'Invalid Input', detail: 'Please enter a valid number of shares.', life: 5000 });
       return
     }
 
     if (newShares < 0) {
-      alert('Shares cannot be negative')
+      toast.add({ severity: 'warn', summary: 'Invalid Input', detail: 'Shares cannot be negative.', life: 5000 });
       return
     }
 
     loading.value = true
     await adjustHoldingShares(holding.isin, newShares, holding.current_price)
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Holding adjusted successfully.', life: 5000 });
     await fetchPortfolio() // Refresh the portfolio data
     editingIndex.value = null // Exit edit mode
     editingShares.value = 0
   } catch (err) {
     console.error('Error adjusting holding:', err)
-    alert('Failed to adjust holding. Please try again.')
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to adjust holding. Please try again.', life: 5000 });
     fetchPortfolio() // Revert changes by refreshing
   } finally {
     loading.value = false
