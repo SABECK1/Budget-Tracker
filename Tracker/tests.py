@@ -51,11 +51,11 @@ class CSVUploadTestCase(APITestCase):
         )
         self.buy_subtype = TransactionSubType.objects.create(
             transaction_type=self.expense_type,
-            name="Buy"
+            name="Investment Buy"
         )
         self.sell_subtype = TransactionSubType.objects.create(
             transaction_type=self.income_type,
-            name="Sell"
+            name="Investment Sell"
         )
         self.not_assigned_subtype = TransactionSubType.objects.create(
             transaction_type=self.expense_type,
@@ -72,7 +72,6 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_requires_authentication(self):
         """Test that CSV upload requires authentication"""
-        print(" Running: test_csv_upload_requires_authentication")
         csv_content = self.create_csv_content([
             ['Date', 'Description', 'Amount', 'Note', 'ISIN', 'Quantity', 'Fee', 'Tax'],
             ['2023-01-01', 'Test Transaction', '-100.00', 'Test Note', '', '', '0.00', '0.00']
@@ -85,7 +84,6 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_successful(self):
         """Test successful CSV upload with valid data"""
-        print(" Running: test_csv_upload_successful")
         self.client.login(username='testuser', password='testpass123')
 
         csv_content = self.create_csv_content([
@@ -115,7 +113,6 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_with_stock_transaction(self):
         """Test CSV upload with stock transactions"""
-        print(" Running: test_csv_upload_with_stock_transaction")
         self.client.login(username='testuser', password='testpass123')
 
         csv_content = self.create_csv_content([
@@ -145,7 +142,6 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_automatic_subtype_assignment_by_note(self):
         """Test that new regular transactions get subtype from existing transactions with same note"""
-        print(" Running: test_csv_upload_automatic_subtype_assignment_by_note")
         self.client.login(username='testuser', password='testpass123')
 
         # Create an existing transaction with a specific subtype
@@ -177,7 +173,6 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_automatic_subtype_assignment_by_isin(self):
         """Test that new stock transactions get subtype from existing transactions with same ISIN"""
-        print(" Running: test_csv_upload_automatic_subtype_assignment_by_isin")
         self.client.login(username='testuser', password='testpass123')
 
         # Create an existing stock transaction with a specific subtype
@@ -210,7 +205,6 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_default_subtype_when_no_matching_note(self):
         """Test that transactions get default subtype when no matching note exists"""
-        print(" Running: test_csv_upload_default_subtype_when_no_matching_note")
         self.client.login(username='testuser', password='testpass123')
 
         csv_content = self.create_csv_content([
@@ -228,7 +222,6 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_handles_empty_rows(self):
         """Test that CSV upload handles empty rows gracefully"""
-        print(" Running: test_csv_upload_handles_empty_rows")
         self.client.login(username='testuser', password='testpass123')
 
         csv_content = self.create_csv_content([
@@ -248,7 +241,6 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_with_missing_columns(self):
         """Test CSV upload with rows having fewer columns"""
-        print(" Running: test_csv_upload_with_missing_columns")
         self.client.login(username='testuser', password='testpass123')
 
         csv_content = self.create_csv_content([
@@ -270,7 +262,6 @@ class CSVUploadTestCase(APITestCase):
 
     def test_csv_upload_invalid_file(self):
         """Test CSV upload with invalid file"""
-        print(" Running: test_csv_upload_invalid_file")
         self.client.login(username='testuser', password='testpass123')
 
         # Try to upload without file
@@ -484,22 +475,20 @@ class PortfolioViewTestCase(APITestCase):
         # Create transaction subtypes for stocks
         self.buy_subtype = TransactionSubType.objects.create(
             transaction_type=self.expense_type,
-            name="Buy"
+            name="Investment Buy"
         )
         self.sell_subtype = TransactionSubType.objects.create(
             transaction_type=self.income_type,
-            name="Sell"
+            name="Investment Sell"
         )
 
     def test_portfolio_requires_authentication(self):
         """Test that portfolio endpoint requires authentication"""
-        print(" Running: test_portfolio_requires_authentication")
         response = self.client.get('/api/portfolio/')
         self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
 
     def test_portfolio_empty_for_new_user(self):
         """Test portfolio returns empty data for user with no stock transactions"""
-        print(" Running: test_portfolio_empty_for_new_user")
         self.client.login(username='testuser', password='testpass123')
 
         response = self.client.get('/api/portfolio/')
@@ -513,7 +502,6 @@ class PortfolioViewTestCase(APITestCase):
     @patch('Tracker.views.fetch_multiple_prices')
     def test_portfolio_with_single_buy_transaction(self, mock_fetch_prices):
         """Test portfolio calculation with a single buy transaction"""
-        print(" Running: test_portfolio_with_single_buy_transaction")
         self.client.login(username='testuser', password='testpass123')
 
         # Mock price fetch to return consistent test price
@@ -561,7 +549,6 @@ class PortfolioViewTestCase(APITestCase):
     @patch('Tracker.views.fetch_multiple_prices')
     def test_portfolio_with_buy_and_sell_same_stock(self, mock_fetch_prices):
         """Test portfolio calculation with buy and sell transactions for same stock"""
-        print(" Running: test_portfolio_with_buy_and_sell_same_stock")
         self.client.login(username='testuser', password='testpass123')
 
         # Mock price fetch to return consistent test price
@@ -605,7 +592,7 @@ class PortfolioViewTestCase(APITestCase):
         data = response.json()
         self.assertEqual(len(data['holdings']), 1)
         holding = data['holdings'][0]
-        print(holding)
+        
         self.assertEqual(holding['isin'], 'US0378331005')
         self.assertEqual(holding['shares'], 7.0)  # 10 - 3
         # Average price calculation: total_invested / net_quantity
@@ -621,7 +608,6 @@ class PortfolioViewTestCase(APITestCase):
     @patch('Tracker.views.fetch_multiple_prices')
     def test_portfolio_filters_zero_net_positions(self, mock_fetch_prices):
         """Test that stocks with zero net positions are filtered out"""
-        print(" Running: test_portfolio_filters_zero_net_positions")
         self.client.login(username='testuser', password='testpass123')
 
         # Mock for MSFT only (AAPL won't be fetched since net quantity = 0)
@@ -687,7 +673,6 @@ class PortfolioViewTestCase(APITestCase):
     @patch('Tracker.views.fetch_multiple_prices')
     def test_portfolio_with_multiple_stocks(self, mock_fetch_prices):
         """Test portfolio calculation with multiple different stocks"""
-        print(" Running: test_portfolio_with_multiple_stocks")
         self.client.login(username='testuser', password='testpass123')
 
         # Mock price fetch to return consistent test prices
@@ -772,7 +757,6 @@ class PortfolioViewTestCase(APITestCase):
     @patch('Tracker.views.fetch_multiple_prices')
     def test_portfolio_ignores_non_stock_transactions(self, mock_fetch_prices):
         """Test that non-stock transactions are ignored in portfolio calculation"""
-        print(" Running: test_portfolio_ignores_non_stock_transactions")
         self.client.login(username='testuser', password='testpass123')
 
         # Mock price fetch for the stock
@@ -829,7 +813,6 @@ class PortfolioViewTestCase(APITestCase):
     @patch('Tracker.views.fetch_multiple_prices')
     def test_portfolio_with_fractional_shares(self, mock_fetch_prices):
         """Test portfolio calculation with fractional share quantities"""
-        print(" Running: test_portfolio_with_fractional_shares")
         self.client.login(username='testuser', password='testpass123')
 
         # Mock price fetch for the stock
@@ -886,7 +869,6 @@ class PortfolioViewTestCase(APITestCase):
     @patch('Tracker.views.fetch_multiple_prices')
     def test_portfolio_calculation_with_fees_and_taxes(self, mock_fetch_prices):
         """Test that fees and taxes are properly included in calculations"""
-        print(" Running: test_portfolio_calculation_with_fees_and_taxes")
         self.client.login(username='testuser', password='testpass123')
 
         # Mock price fetch for the stock
@@ -934,7 +916,6 @@ class PortfolioViewTestCase(APITestCase):
     @patch('Tracker.views.fetch_multiple_prices')
     def test_portfolio_user_isolation(self, mock_fetch_prices):
         """Test that users only see their own portfolio data"""
-        print(" Running: test_portfolio_user_isolation")
 
         # Mock price fetch for AAPL (User 1's stock)
         async def mock_price_fetch(*args, **kwargs):
@@ -992,7 +973,6 @@ class PortfolioViewTestCase(APITestCase):
 
     def test_portfolio_with_only_sell_transactions(self):
         """Test portfolio with only sell transactions (should be empty)"""
-        print(" Running: test_portfolio_with_only_sell_transactions")
         self.client.login(username='testuser', password='testpass123')
 
         # Only sell transactions (no buys)
@@ -1039,11 +1019,11 @@ class AdjustHoldingTestCase(APITestCase):
         # Create transaction subtypes for stocks
         self.buy_subtype = TransactionSubType.objects.create(
             transaction_type=self.expense_type,
-            name="Buy"
+            name="Investment Buy"
         )
         self.sell_subtype = TransactionSubType.objects.create(
             transaction_type=self.income_type,
-            name="Sell"
+            name="Investment Sell"
         )
 
     def test_adjust_holding_requires_authentication(self):
