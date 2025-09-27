@@ -6,6 +6,7 @@ import Card from "primevue/card";
 import FileUpload from 'primevue/fileupload';
 import ProgressSpinner from 'primevue/progressspinner';
 import InputText from "primevue/inputtext";
+import InputNumber from "primevue/inputnumber";
 import Dropdown from "primevue/dropdown";
 import Button from "primevue/button";
 import Toast from 'primevue/toast';
@@ -50,6 +51,17 @@ const csvUploading = ref(false);
 // Filter state
 const noteFilter = ref('');
 const subtypeFilter = ref(null);
+
+// Add transaction state
+const addForm = ref({
+    transaction_subtype: null,
+    amount: '',
+    note: '',
+    isin: '',
+    quantity: '',
+    fee: '',
+    tax: ''
+});
 
 // Fetch data on mount
 onMounted(async () => {
@@ -397,6 +409,43 @@ const filterTransactions = (transactionsList) => {
         return matchesNote && matchesSubtype;
     });
 };
+
+// Add transaction function
+const addTransaction = async () => {
+    if (!addForm.value.transaction_subtype || !addForm.value.amount) {
+        toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Transaction Type and Amount are required.', life: 5000 });
+        return;
+    }
+
+    try {
+        await axios.post(`${baseurl}/transactions/`, addForm.value, {
+            headers: {
+                'X-CSRFToken': Cookies.get('csrftoken'),
+            },
+            withCredentials: true,
+        });
+
+        // Clear form
+        addForm.value = {
+            transaction_subtype: null,
+            amount: '',
+            note: '',
+            isin: '',
+            quantity: '',
+            fee: '',
+            tax: ''
+        };
+
+        // Refresh data
+        await loadTransactionCounts();
+        expandedData.value.clear();
+
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Transaction added successfully.', life: 3000 });
+    } catch (err) {
+        console.error("Error adding transaction:", err);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Error adding transaction. Please try again.', life: 5000 });
+    }
+};
 </script>
 
 <template>
@@ -632,6 +681,93 @@ const filterTransactions = (transactionsList) => {
                 </div>
             </template>
         </Card>
+
+        <!-- Add Transaction Form -->
+        <Card class="mb-4">
+            <template #title>Add Transaction Manually</template>
+            <template #content>
+                <div class="p-fluid form-grid">
+                    <div class="field">
+                        <label for="add-transaction_subtype" class="form-label">Transaction Type *</label>
+                        <Dropdown
+                            id="add-transaction_subtype"
+                            v-model="addForm.transaction_subtype"
+                            :options="transactionSubtypes"
+                            option-label="name"
+                            option-value="id"
+                            placeholder="Select transaction type"
+                            class="w-full"
+                        />
+                    </div>
+                    <div class="field">
+                        <label for="add-amount" class="form-label">Amount *</label>
+                        <InputNumber
+                            id="add-amount"
+                            v-model="addForm.amount"
+                            mode="decimal"
+                            :minFractionDigits="2"
+                            class="w-full"
+                        />
+                    </div>
+                    <div class="field">
+                        <label for="add-note" class="form-label">Note</label>
+                        <InputText
+                            id="add-note"
+                            v-model="addForm.note"
+                            placeholder="Optional note"
+                            class="w-full"
+                        />
+                    </div>
+                    <div class="field">
+                        <label for="add-isin" class="form-label">ISIN</label>
+                        <InputText
+                            id="add-isin"
+                            v-model="addForm.isin"
+                            placeholder="Optional ISIN"
+                            class="w-full"
+                        />
+                    </div>
+                    <div class="field">
+                        <label for="add-tax" class="form-label">Tax</label>
+                        <InputNumber
+                            id="add-tax"
+                            v-model="addForm.tax"
+                            mode="decimal"
+                            :minFractionDigits="2"
+                            class="w-full"
+                        />
+                    </div>
+                    <div class="field">
+                        <label for="add-quantity" class="form-label">Quantity</label>
+                        <InputNumber
+                            id="add-quantity"
+                            v-model="addForm.quantity"
+                            mode="decimal"
+                            :minFractionDigits="2"
+                            class="w-full"
+                        />
+                    </div>
+                    <div class="field">
+                        <label for="add-fee" class="form-label">Fee</label>
+                        <InputNumber
+                            id="add-fee"
+                            v-model="addForm.fee"
+                            mode="decimal"
+                            :minFractionDigits="2"
+                            class="w-full"
+                        />
+                    </div>
+                    <div class="field col-span-full">
+                        <Button
+                            label="Add Transaction"
+                            icon="pi pi-plus"
+                            @click="addTransaction"
+                            class="p-button-success"
+                        />
+                    </div>
+                </div>
+            </template>
+        </Card>
         <Toast />
     </div>
 </template>
@@ -725,6 +861,30 @@ export default {
 
 .filter-dropdown {
     width: 200px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+}
+
+.field.col-span-full {
+    grid-column: 1 / -1;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
+    margin: 0 0 4px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 @media (max-width: 768px) {
