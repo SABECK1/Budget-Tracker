@@ -29,9 +29,11 @@ class TransactionTypeSerializer(serializers.HyperlinkedModelSerializer):
         fields = ['url', 'id', 'name', 'description', 'expense_factor']
 
 class TransactionSubtypeSerializer(serializers.ModelSerializer):
+    transaction_type_name = serializers.CharField(source='transaction_type.name', read_only=True)
+
     class Meta:
         model = models.TransactionSubType
-        fields = ['id', 'transaction_type','name','description']
+        fields = ['id', 'transaction_type', 'transaction_type_name', 'name', 'description']
 
 class TransactionSerializer(serializers.HyperlinkedModelSerializer):
     transaction_subtype = serializers.PrimaryKeyRelatedField(

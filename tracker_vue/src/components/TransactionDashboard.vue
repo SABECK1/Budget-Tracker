@@ -11,7 +11,7 @@ import Dropdown from "primevue/dropdown";
 import Button from "primevue/button";
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
-// import { FilterMatchMode } from "@primevue/core/api";
+import Chart from 'primevue/chart'
 import axios from "axios";
 import Cookies from 'js-cookie';
 
@@ -216,6 +216,117 @@ const transactionsBySubtype = computed(() => {
 
     return Object.values(grouped);
 });
+
+// Pie chart computed properties
+const incomeChartData = computed(() => {
+    const incomeSubtypes = transactionSubtypes.value.filter(subtype =>
+        subtype.transaction_type_name === 'Income'
+    );
+    console.log(incomeSubtypes);
+
+    const labels = [];
+    const data = [];
+    const colors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+    ];
+
+    incomeSubtypes.forEach(subtype => {
+        const subtypeTransactions = transactions.value.filter(t => t.transaction_subtype === subtype.id);
+        const totalAmount = Math.abs(subtypeTransactions.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0));
+
+        if (totalAmount > 0) {
+            labels.push(subtype.name);
+            data.push(totalAmount);
+        }
+    });
+
+    return {
+        labels,
+        datasets: [{
+            data,
+            backgroundColor: colors.slice(0, labels.length),
+            borderWidth: 1
+        }]
+    };
+});
+
+const expenseChartData = computed(() => {
+    const expenseSubtypes = transactionSubtypes.value.filter(subtype =>
+        subtype.transaction_type_name === 'Expense'
+    );
+
+    const labels = [];
+    const data = [];
+    const colors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+    ];
+
+    expenseSubtypes.forEach(subtype => {
+        const subtypeTransactions = transactions.value.filter(t => t.transaction_subtype === subtype.id);
+        const totalAmount = Math.abs(subtypeTransactions.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0));
+
+        if (totalAmount > 0) {
+            labels.push(subtype.name);
+            data.push(totalAmount);
+        }
+    });
+
+    return {
+        labels,
+        datasets: [{
+            data,
+            backgroundColor: colors.slice(0, labels.length),
+            borderWidth: 1
+        }]
+    };
+});
+
+const savingsChartData = computed(() => {
+    const savingsSubtypes = transactionSubtypes.value.filter(subtype =>
+        subtype.transaction_type_name === 'Savings'
+    );
+
+    const labels = [];
+    const data = [];
+    const colors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+    ];
+
+    savingsSubtypes.forEach(subtype => {
+        const subtypeTransactions = transactions.value.filter(t => t.transaction_subtype === subtype.id);
+        const totalAmount = Math.abs(subtypeTransactions.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0));
+
+        if (totalAmount > 0) {
+            labels.push(subtype.name);
+            data.push(totalAmount);
+        }
+    });
+    console.log(labels, data);
+    return {
+        labels,
+        datasets: [{
+            data,
+            backgroundColor: colors.slice(0, labels.length),
+            borderWidth: 1
+        }]
+    };
+});
+
+const chartOptions = {
+    responsive: true,
+    plugins: {
+        legend: {
+            position: 'right'
+        },
+        tooltip: {
+            callbacks: {
+                label: function(context) {
+                    return `${context.label}: €${context.parsed.toFixed(2)}`;
+                }
+            }
+        }
+    }
+};
 
 // Format currency
 const formatCurrency = (amount) => {
@@ -442,7 +553,7 @@ const addTransaction = async () => {
 
         toast.add({ severity: 'success', summary: 'Success', detail: 'Transaction added successfully.', life: 3000 });
     } catch (err) {
-        console.error("Error adding transaction:", err);
+        console.error("Error adding transaction:", err.toJSON());
         toast.add({ severity: 'error', summary: 'Error', detail: 'Error adding transaction. Please try again.', life: 5000 });
     }
 };
@@ -469,6 +580,50 @@ const addTransaction = async () => {
             <div class="insight-card">
                 <h3>Total Taxes</h3>
                 <p class="text-orange-600">{{ formatCurrency(totalTaxes) }}</p>
+            </div>
+        </div>
+
+        <!-- Pie Charts for Category Breakdown -->
+        <div class="charts-section mb-4">
+            <div class="chart-row">
+                <!-- Income Chart -->
+                <Card class="chart-card">
+                    <template #title>Income Breakdown</template>
+                    <template #content>
+                        <div class="chart-container" v-if="incomeChartData.datasets[0].data.length > 0">
+                            <Chart type="pie" :data="incomeChartData" :options="chartOptions" />
+                        </div>
+                        <div class="no-data" v-else>
+                            <p class="text-center text-muted">No income data available</p>
+                        </div>
+                    </template>
+                </Card>
+
+                <!-- Expense Chart -->
+                <Card class="chart-card">
+                    <template #title>Expense Breakdown</template>
+                    <template #content>
+                        <div class="chart-container" v-if="expenseChartData.datasets[0].data.length > 0">
+                            <Chart type="pie" :data="expenseChartData" :options="chartOptions" />
+                        </div>
+                        <div class="no-data" v-else>
+                            <p class="text-center text-muted">No expense data available</p>
+                        </div>
+                    </template>
+                </Card>
+
+                <!-- Savings (Investment) Chart -->
+                <Card class="chart-card">
+                    <template #title>Investment Breakdown</template>
+                    <template #content>
+                        <div class="chart-container" v-if="savingsChartData.datasets[0].data.length > 0">
+                            <Chart type="pie" :data="savingsChartData" :options="chartOptions" />
+                        </div>
+                        <div class="no-data" v-else>
+                            <p class="text-center text-muted">No investment data available</p>
+                        </div>
+                    </template>
+                </Card>
             </div>
         </div>
 
@@ -887,6 +1042,47 @@ export default {
     letter-spacing: 0.5px;
 }
 
+.charts-section {
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.chart-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.chart-card {
+    flex: 1;
+    min-width: 300px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container {
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.no-data {
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.no-data p {
+    color: #6c757d;
+    font-style: italic;
+    margin: 0;
+}
+
 @media (max-width: 768px) {
     .filter-controls {
         flex-direction: column;
@@ -904,6 +1100,15 @@ export default {
 
     .filter-dropdown {
         width: 100%;
+    }
+
+    .chart-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .chart-card {
+        min-width: unset;
     }
 }
 </style>
