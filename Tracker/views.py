@@ -28,8 +28,9 @@ from django.contrib.auth import authenticate, login, logout
 from .forms import CreateUserForm
 from django.db import models
 from django.db.models import Sum, F, Case, When
-from .stocks import get_history, fetch_multiple_prices
+from .stocks import get_history, fetch_multiple_prices, get_symbol_and_industry
 import asyncio
+
 
 
 class CSVUploadView(APIView):
@@ -354,6 +355,8 @@ def portfolio_view(request):
             intraday_data = price_info.get('intraday_data', [])
             preday = price_info.get('preday', [])
             history = price_info.get('history_data', [])
+            industry = price_info.get('industry', 'Unknown')
+            sector = price_info.get('sector', 'Unknown')
         else:
             # Fallback to avg_price if concurrent fetch failed
             current_price = avg_price
@@ -361,6 +364,10 @@ def portfolio_view(request):
             intraday_data = []
             preday = []
             history = []
+            # Try to get industry even in fallback
+            symbol_info = get_symbol_and_industry(isin)
+            industry = symbol_info.get('industry', 'Unknown')
+            sector = symbol_info.get('sector', 'Unknown')
 
         # Get transaction data for this holding to show on chart
         transactions = Transaction.objects.filter(user=request.user, isin=isin).order_by('created_at')
@@ -395,7 +402,9 @@ def portfolio_view(request):
                 "intraday_data": intraday_data,
                 "preday": preday,
                 "history": history,
-                "transactions": transaction_points
+                "transactions": transaction_points,
+                "industry": industry,
+                "sector": sector
             }
         )
 

@@ -2,6 +2,7 @@ import requests
 import aiohttp
 import asyncio
 from typing import Optional, Tuple, List, Dict
+import yfinance as yf
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36'
@@ -86,6 +87,10 @@ async def fetch_single_price(isin: str, max_concurrent: int) -> Dict[str, any]:
                 else:
                     current_price = None
                     success = False
+
+                # Fetch symbol and industry
+                symbol_info = await asyncio.to_thread(get_symbol_and_industry, isin)
+
                 return {
                     'isin': isin,
                     'name': name,
@@ -93,7 +98,9 @@ async def fetch_single_price(isin: str, max_concurrent: int) -> Dict[str, any]:
                     'success': success,
                     'intraday_data': intraday_data,
                     'preday': preday,
-                    'history_data': history_data
+                    'history_data': history_data,
+                    'industry': symbol_info.get('industry', 'Unknown'),
+                    'sector': symbol_info.get('sector', 'Unknown')
                 }
             except Exception as e:
                 print(f"Failed to fetch data for {isin}: {e}")
@@ -104,7 +111,9 @@ async def fetch_single_price(isin: str, max_concurrent: int) -> Dict[str, any]:
                     'success': False,
                     'intraday_data': [],
                     'preday': [],
-                    'history_data': []
+                    'history_data': [],
+                    'industry': 'Unknown',
+                    'sector': 'Unknown'
                 }
 
 
@@ -125,41 +134,61 @@ async def fetch_multiple_prices(isins: List[str], max_concurrent: int = 5) -> Di
             price_dict[result['isin']] = result
     return price_dict
 
-# def get_symbol_for_isin(isin, user=None):
-#     # First check if user provided symbol
-#     if user:
-#         user_symbol = UserProvidedSymbol.objects.filter(user=user, isin=isin).first()
-#         if user_symbol:
-#             return {
-#                 "symbol": user_symbol.symbol,
-#                 "name": user_symbol.name,
-#                 "source": "user"
-#             }
 
-#     # Then try Yahoo Finance API
-#     url = 'https://query1.finance.yahoo.com/v1/finance/search'
-#     params = dict(
-#         q=isin,
-#         quotesCount=1,
-#         newsCount=0,
-#         listsCount=0,
-#         quotesQueryId='tss_match_phrase_query'
-#     )
+def get_symbol_and_industry(isin: str) -> Dict[str, str]:
+    """
+    Get symbol, name, and industry for an ISIN using Yahoo Finance API and yfinance.
+    """
+    try:
+        # Then try Yahoo Finance API to get symbol
+        url = 'https://query1.finance.yahoo.com/v1/finance/search'
+        params = dict(
+            q=isin,
+            quotesCount=1,
+            newsCount=0,
+            listsCount=0,
+            quotesQueryId='tss_match_phrase_query'
+        )
 
-#     resp = requests.get(url=url, headers=headers, params=params)
-#     data = resp.json()
-#     if 'quotes' in data and len(data['quotes']) > 0:
-#         return {
-#             "symbol": data['quotes'][0]['symbol'],
-#             "name": data['quotes'][0]['longname'] if 'longname' in data['quotes'][0] else data['quotes'][0]['shortname'],
-#             "source": "api"
-#         }
-#     elif user:
-#         return {
-#             "symbol": "Not found",
-#             "name": "Not found",
-#             "not_found": True,
-#             "source": "none"
-#         }
-    
-#     return None
+        resp = requests.get(url=url, headers=headers, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+        if 'quotes' in data and len(data['quotes']) > 0:
+            symbol = data['quotes'][0]['symbol']
+            name = data['quotes'][0]['longname'] if 'longname' in data['quotes'][0] else data['quotes'][0]['shortname']
+
+            # Get industry from yfinance
+            try:
+                ticker = yf.Ticker(symbol)
+                info = ticker.info
+                industry = info.get('industry', 'Unknown')
+                sector = info.get('sector', 'Unknown')
+            except Exception as e:
+                print(f"Error getting industry for {symbol}: {e}")
+                industry = "Unknown"
+                sector = "Unknown"
+
+            return {
+                "symbol": symbol,
+                "name": name,
+                "industry": industry,
+                "sector": sector,
+                "source": "api"
+            }
+        else:
+            return {
+                "symbol": "Not found",
+                "name": f"Unknown ({isin})",
+                "industry": "Unknown",
+                "sector": "Unknown",
+                "source": "none"
+            }
+    except Exception as e:
+        print(f"Error fetching symbol for {isin}: {e}")
+        return {
+            "symbol": "Error",
+            "name": f"Error ({isin})",
+            "industry": "Unknown",
+            "sector": "Unknown",
+            "source": "none"
+        }

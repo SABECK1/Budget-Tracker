@@ -53,7 +53,7 @@
           </div>
         </div>
         <DataTable v-if="filteredHoldings.length > 0" :value="filteredHoldings" :filters="filters" filterDisplay="row"
-          :globalFilterFields="['name', 'symbol', 'isin']" :paginator="true" :rows="10"
+          :globalFilterFields="['name', 'symbol', 'isin', 'industry']" :paginator="true" :rows="10"
           :rowsPerPageOptions="[5, 10, 25, 50]"
           paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
           currentPageReportTemplate="Showing {first} to {last} of {totalRecords} holdings" responsiveLayout="scroll"
@@ -75,6 +75,13 @@
           <Column field="isin" header="ISIN" sortable :showFilterMatchModes="false">
             <template #filter="{ filterCallback }">
               <InputText v-model="filters.isin.value" type="text" placeholder="Search by ISIN" class="p-column-filter"
+                @input="filterCallback()" />
+            </template>
+          </Column>
+
+          <Column field="industry" header="Industry" sortable :showFilterMatchModes="false">
+            <template #filter="{ filterCallback }">
+              <InputText v-model="filters.industry.value" type="text" placeholder="Search by Industry" class="p-column-filter"
                 @input="filterCallback()" />
             </template>
           </Column>
@@ -348,6 +355,7 @@ const filters = reactive({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   name: { value: null, matchMode: FilterMatchMode.CONTAINS },
   isin: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  industry: { value: null, matchMode: FilterMatchMode.CONTAINS },
   shares: { value: null, matchMode: FilterMatchMode.BETWEEN },
   avg_price: { value: null, matchMode: FilterMatchMode.BETWEEN },
   current_price: { value: null, matchMode: FilterMatchMode.BETWEEN },
