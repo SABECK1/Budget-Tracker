@@ -432,7 +432,7 @@ const createChartFormat = (rawData, transactionData = [], period = 'intraday') =
   const periodFilteredTransactions = filterTransactionsByPeriod(transactionData, period)
 
         // Add transaction dots for Buy transactions (green upward triangle)
-        const buyTransactions = periodFilteredTransactions.filter(t => t.type === 'Buy')
+        const buyTransactions = periodFilteredTransactions.filter(t => t.type === 'Investment Buy')
         if (buyTransactions.length > 0) {
           const buyPoints = buyTransactions.map(transaction => ({
             x: new Date(transaction.timestamp).toLocaleString([], {
@@ -459,7 +459,7 @@ const createChartFormat = (rawData, transactionData = [], period = 'intraday') =
         }
 
         // Add transaction dots for Sell transactions (red downward triangle)
-        const sellTransactions = periodFilteredTransactions.filter(t => t.type === 'Sell')
+        const sellTransactions = periodFilteredTransactions.filter(t => t.type === 'Investment Sell')
         if (sellTransactions.length > 0) {
           const sellPoints = sellTransactions.map(transaction => ({
             x: new Date(transaction.timestamp).toLocaleString([], {
