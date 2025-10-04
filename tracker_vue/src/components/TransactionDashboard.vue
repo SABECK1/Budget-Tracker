@@ -9,6 +9,7 @@ import InputText from "primevue/inputtext";
 import InputNumber from "primevue/inputnumber";
 import Dropdown from "primevue/dropdown";
 import Button from "primevue/button";
+import Calendar from "primevue/calendar";
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
 import Chart from 'primevue/chart'
@@ -51,6 +52,8 @@ const csvUploading = ref(false);
 // Filter state
 const noteFilter = ref('');
 const subtypeFilter = ref(null);
+const startDateFilter = ref(null);
+const endDateFilter = ref(null);
 
 // Add transaction state
 const addForm = ref({
@@ -80,7 +83,7 @@ onMounted(async () => {
 });
 
 // Watch for filter changes to clear cache and reset expanded state
-watch([noteFilter, subtypeFilter], async () => {
+watch([noteFilter, subtypeFilter, startDateFilter, endDateFilter], async () => {
     // Clear expanded cache when filters change
     expandedData.value.clear();
 
@@ -105,7 +108,10 @@ const loadTransactionsForSubtype = async (subtypeId) => {
     if (expandedData.value.has(subtypeId)) {
         const cachedData = expandedData.value.get(subtypeId);
         // Check if filters have changed and we need to refilter
-        if (cachedData.noteFilter !== noteFilter.value || cachedData.subtypeFilter !== subtypeFilter.value) {
+        if (cachedData.noteFilter !== noteFilter.value ||
+            cachedData.subtypeFilter !== subtypeFilter.value ||
+            cachedData.startDateFilter !== startDateFilter.value ||
+            cachedData.endDateFilter !== endDateFilter.value) {
             // Filters changed, need to refetch and filter
             expandedData.value.delete(subtypeId);
         } else {
@@ -119,17 +125,8 @@ const loadTransactionsForSubtype = async (subtypeId) => {
         const response = await axios.get(`${baseurl}/transactions/?transaction_subtype=${subtypeId}`);
         let filteredTransactions = response.data;
 
-        // Apply filters to the expanded transactions if any filters are active
-        if (noteFilter.value || subtypeFilter.value) {
-            filteredTransactions = filterTransactions(filteredTransactions);
-
-            // Apply note filter across all transactions if subtype filter allows this subtype
-            if (noteFilter.value) {
-                filteredTransactions = filteredTransactions.filter(t =>
-                    t.note && t.note.toLowerCase().includes(noteFilter.value.toLowerCase())
-                );
-            }
-        }
+        // Apply all filters to the expanded transactions
+        filteredTransactions = filterTransactions(filteredTransactions);
 
         const data = {
             transactions: filteredTransactions,
@@ -139,7 +136,9 @@ const loadTransactionsForSubtype = async (subtypeId) => {
                 total: filteredTransactions.length
             },
             noteFilter: noteFilter.value, // Cache filter state
-            subtypeFilter: subtypeFilter.value
+            subtypeFilter: subtypeFilter.value,
+            startDateFilter: startDateFilter.value,
+            endDateFilter: endDateFilter.value
         };
 
         expandedData.value.set(subtypeId, data);
@@ -164,19 +163,22 @@ const onRowCollapse = (event) => {
     // expandedData.value.delete(event.data.subtype.id);
 };
 
+// Filtered transactions computed
+const filteredTransactions = computed(() => filterTransactions(transactions.value));
+
 // Computed properties for metrics
-const totalTransactions = computed(() => transactions.value.length);
+const totalTransactions = computed(() => filteredTransactions.value.length);
 
 const totalAmount = computed(() => {
-    return transactions.value.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+    return filteredTransactions.value.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
 });
 
 const totalFees = computed(() => {
-    return transactions.value.reduce((sum, t) => sum + parseFloat(t.fee || 0), 0);
+    return filteredTransactions.value.reduce((sum, t) => sum + parseFloat(t.fee || 0), 0);
 });
 
 const totalTaxes = computed(() => {
-    return transactions.value.reduce((sum, t) => sum + parseFloat(t.tax || 0), 0);
+    return filteredTransactions.value.reduce((sum, t) => sum + parseFloat(t.tax || 0), 0);
 });
 
 // Get subtype object by ID
@@ -231,7 +233,7 @@ const incomeChartData = computed(() => {
     ];
 
     incomeSubtypes.forEach(subtype => {
-        const subtypeTransactions = transactions.value.filter(t => t.transaction_subtype === subtype.id);
+        const subtypeTransactions = filteredTransactions.value.filter(t => t.transaction_subtype === subtype.id);
         const totalAmount = Math.abs(subtypeTransactions.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0));
 
         if (totalAmount > 0) {
@@ -262,7 +264,7 @@ const expenseChartData = computed(() => {
     ];
 
     expenseSubtypes.forEach(subtype => {
-        const subtypeTransactions = transactions.value.filter(t => t.transaction_subtype === subtype.id);
+        const subtypeTransactions = filteredTransactions.value.filter(t => t.transaction_subtype === subtype.id);
         const totalAmount = Math.abs(subtypeTransactions.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0));
 
         if (totalAmount > 0) {
@@ -293,7 +295,7 @@ const savingsChartData = computed(() => {
     ];
 
     savingsSubtypes.forEach(subtype => {
-        const subtypeTransactions = transactions.value.filter(t => t.transaction_subtype === subtype.id);
+        const subtypeTransactions = filteredTransactions.value.filter(t => t.transaction_subtype === subtype.id);
         const totalAmount = Math.abs(subtypeTransactions.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0));
 
         if (totalAmount > 0) {
@@ -506,6 +508,8 @@ const onCsvUpload = async (event) => {
 const clearFilters = () => {
     noteFilter.value = '';
     subtypeFilter.value = null;
+    startDateFilter.value = null;
+    endDateFilter.value = null;
 };
 
 // Helper: Filter transactions based on current filters
@@ -517,7 +521,14 @@ const filterTransactions = (transactionsList) => {
         const matchesSubtype = !subtypeFilter.value ||
             transaction.transaction_subtype === subtypeFilter.value;
 
-        return matchesNote && matchesSubtype;
+        const transactionDate = new Date(transaction.created_at).getTime();
+        const startDate = startDateFilter.value ? new Date(startDateFilter.value).getTime() : null;
+        const endDate = endDateFilter.value ? new Date(endDateFilter.value).getTime() + (24 * 60 * 60 * 1000) - 1 : null; // End of day
+
+        const matchesDate = (!startDate || transactionDate >= startDate) &&
+                           (!endDate || transactionDate <= endDate);
+
+        return matchesNote && matchesSubtype && matchesDate;
     });
 };
 
@@ -640,6 +651,16 @@ const addTransaction = async () => {
                     <Dropdown id="subtype-filter" v-model="subtypeFilter" :options="transactionSubtypes"
                         option-label="name" option-value="id" placeholder="All types" show-clear
                         class="filter-dropdown" />
+                </div>
+                <div class="filter-item">
+                    <label for="start-date-filter" class="filter-label">Start Date:</label>
+                    <Calendar id="start-date-filter" v-model="startDateFilter" placeholder="Select start date"
+                        :maxDate="endDateFilter" showIcon class="filter-calendar" />
+                </div>
+                <div class="filter-item">
+                    <label for="end-date-filter" class="filter-label">End Date:</label>
+                    <Calendar id="end-date-filter" v-model="endDateFilter" placeholder="Select end date"
+                        :minDate="startDateFilter" showIcon class="filter-calendar" />
                 </div>
                 <div class="filter-item">
                     <Button label="Clear Filters" icon="pi pi-times" class="p-button-secondary p-button-sm"
@@ -959,6 +980,10 @@ export default {
 }
 
 .filter-dropdown {
+    width: 200px;
+}
+
+.filter-calendar {
     width: 200px;
 }
 
