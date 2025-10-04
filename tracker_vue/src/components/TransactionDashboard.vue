@@ -320,7 +320,7 @@ const chartOptions = {
         },
         tooltip: {
             callbacks: {
-                label: function(context) {
+                label: function (context) {
                     return `${context.label}: €${context.parsed.toFixed(2)}`;
                 }
             }
@@ -632,33 +632,18 @@ const addTransaction = async () => {
             <div class="filter-controls">
                 <div class="filter-item">
                     <label for="note-filter" class="filter-label">Search Notes:</label>
-                    <InputText
-                        id="note-filter"
-                        v-model="noteFilter"
-                        placeholder="Search transaction notes..."
-                        class="filter-input"
-                    />
+                    <InputText id="note-filter" v-model="noteFilter" placeholder="Search transaction notes..."
+                        class="filter-input" />
                 </div>
                 <div class="filter-item">
                     <label for="subtype-filter" class="filter-label">Filter by Type:</label>
-                    <Dropdown
-                        id="subtype-filter"
-                        v-model="subtypeFilter"
-                        :options="transactionSubtypes"
-                        option-label="name"
-                        option-value="id"
-                        placeholder="All types"
-                        show-clear
-                        class="filter-dropdown"
-                    />
+                    <Dropdown id="subtype-filter" v-model="subtypeFilter" :options="transactionSubtypes"
+                        option-label="name" option-value="id" placeholder="All types" show-clear
+                        class="filter-dropdown" />
                 </div>
                 <div class="filter-item">
-                    <Button
-                        label="Clear Filters"
-                        icon="pi pi-times"
-                        class="p-button-secondary p-button-sm"
-                        @click="clearFilters"
-                    />
+                    <Button label="Clear Filters" icon="pi pi-times" class="p-button-secondary p-button-sm"
+                        @click="clearFilters" />
                 </div>
             </div>
         </div>
@@ -772,7 +757,7 @@ const addTransaction = async () => {
                                                 <label>
                                                     <input type="checkbox" v-model="editForm.applyToAllWithSameNote" />
                                                     Assign subtype to all transactions with the same {{ editForm.isin ?
-                                                    'ISIN' : 'note' }}
+                                                        'ISIN' : 'note' }}
                                                 </label>
                                             </div>
                                             <div class="d-flex gap-2">
@@ -786,8 +771,7 @@ const addTransaction = async () => {
                                             </div>
                                         </div>
                                         <div v-else class="d-flex gap-2">
-                                            <button @click="startEdit(slotProps.data)"
-                                                class="btn btn-primary btn-sm">
+                                            <button @click="startEdit(slotProps.data)" class="btn btn-primary btn-sm">
                                                 Edit
                                             </button>
                                             <button @click="deleteTransaction(slotProps.data)"
@@ -844,81 +828,41 @@ const addTransaction = async () => {
                 <div class="p-fluid form-grid">
                     <div class="field">
                         <label for="add-transaction_subtype" class="form-label">Transaction Type *</label>
-                        <Dropdown
-                            id="add-transaction_subtype"
-                            v-model="addForm.transaction_subtype"
-                            :options="transactionSubtypes"
-                            option-label="name"
-                            option-value="id"
-                            placeholder="Select transaction type"
-                            class="w-full"
-                        />
+                        <Dropdown id="add-transaction_subtype" v-model="addForm.transaction_subtype"
+                            :options="transactionSubtypes" option-label="name" option-value="id"
+                            placeholder="Select transaction type" class="w-full" />
                     </div>
                     <div class="field">
                         <label for="add-amount" class="form-label">Amount *</label>
-                        <InputNumber
-                            id="add-amount"
-                            v-model="addForm.amount"
-                            mode="decimal"
-                            :minFractionDigits="2"
-                            class="w-full"
-                        />
+                        <InputNumber id="add-amount" v-model="addForm.amount" mode="decimal" :minFractionDigits="2"
+                            class="w-full" />
                     </div>
                     <div class="field">
                         <label for="add-note" class="form-label">Note</label>
-                        <InputText
-                            id="add-note"
-                            v-model="addForm.note"
-                            placeholder="Optional note"
-                            class="w-full"
-                        />
+                        <InputText id="add-note" v-model="addForm.note" placeholder="Optional note" class="w-full" />
                     </div>
                     <div class="field">
                         <label for="add-isin" class="form-label">ISIN</label>
-                        <InputText
-                            id="add-isin"
-                            v-model="addForm.isin"
-                            placeholder="Optional ISIN"
-                            class="w-full"
-                        />
+                        <InputText id="add-isin" v-model="addForm.isin" placeholder="Optional ISIN" class="w-full" />
                     </div>
                     <div class="field">
                         <label for="add-tax" class="form-label">Tax</label>
-                        <InputNumber
-                            id="add-tax"
-                            v-model="addForm.tax"
-                            mode="decimal"
-                            :minFractionDigits="2"
-                            class="w-full"
-                        />
+                        <InputNumber id="add-tax" v-model="addForm.tax" mode="decimal" :minFractionDigits="2"
+                            class="w-full" />
                     </div>
                     <div class="field">
                         <label for="add-quantity" class="form-label">Quantity</label>
-                        <InputNumber
-                            id="add-quantity"
-                            v-model="addForm.quantity"
-                            mode="decimal"
-                            :minFractionDigits="2"
-                            class="w-full"
-                        />
+                        <InputNumber id="add-quantity" v-model="addForm.quantity" mode="decimal" :minFractionDigits="2"
+                            class="w-full" />
                     </div>
                     <div class="field">
                         <label for="add-fee" class="form-label">Fee</label>
-                        <InputNumber
-                            id="add-fee"
-                            v-model="addForm.fee"
-                            mode="decimal"
-                            :minFractionDigits="2"
-                            class="w-full"
-                        />
+                        <InputNumber id="add-fee" v-model="addForm.fee" mode="decimal" :minFractionDigits="2"
+                            class="w-full" />
                     </div>
                     <div class="field col-span-full">
-                        <Button
-                            label="Add Transaction"
-                            icon="pi pi-plus"
-                            @click="addTransaction"
-                            class="p-button-success"
-                        />
+                        <Button label="Add Transaction" icon="pi pi-plus" @click="addTransaction"
+                            class="p-button-success" />
                     </div>
                 </div>
             </template>

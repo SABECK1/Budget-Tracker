@@ -24,7 +24,17 @@
         </div>
       </div>
 
-
+      <!-- Portfolio Industry Pie Chart -->
+      <div class="industry-pie-chart-section">
+        <h2>Portfolio by Industry</h2>
+        <h3>Value by Industry</h3>
+        <div v-if="industryChartData.datasets[0].data.length > 0" class="chart-container">
+          <Chart type="pie" :data="industryChartData" :options="pieChartOptions" class="pie-chart" />
+        </div>
+        <div v-else-if="!loading" class="empty-chart">
+          <p>No industry data available for charting.</p>
+        </div>
+      </div>
 
       <div class="portfolio-table">
         <div class="table-controls">
@@ -32,7 +42,8 @@
           <div class="control-group">
             <div class="global-period-control">
               <label for="global-period-selector">All Holdings Period:</label>
-              <select id="global-period-selector" v-model="globalPeriod" @change="updateAllHoldingsPeriod" class="global-period-selector">
+              <select id="global-period-selector" v-model="globalPeriod" @change="updateAllHoldingsPeriod"
+                class="global-period-selector">
                 <option value="intraday">Intraday</option>
                 <option value="1w">1 Week</option>
                 <option value="1m">1 Month</option>
@@ -81,8 +92,8 @@
 
           <Column field="industry" header="Industry" sortable :showFilterMatchModes="false">
             <template #filter="{ filterCallback }">
-              <InputText v-model="filters.industry.value" type="text" placeholder="Search by Industry" class="p-column-filter"
-                @input="filterCallback()" />
+              <InputText v-model="filters.industry.value" type="text" placeholder="Search by Industry"
+                class="p-column-filter" @input="filterCallback()" />
             </template>
           </Column>
 
@@ -119,7 +130,8 @@
           <Column field="performance" header="Performance" style="min-width: 220px;">
             <template #body="slotProps">
               <div class="chart-container">
-                <select :value="slotProps.data.selectedPeriod || globalPeriod" @change="updateHoldingPeriod(slotProps.data, $event.target.value)" class="period-selector">
+                <select :value="slotProps.data.selectedPeriod || globalPeriod"
+                  @change="updateHoldingPeriod(slotProps.data, $event.target.value)" class="period-selector">
                   <option value="intraday">Intraday</option>
                   <option value="1w">1 Week</option>
                   <option value="1m">1 Month</option>
@@ -206,14 +218,14 @@ import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()
 
-  const periodDefinitions = {
-    '1w': 7 * 24 * 60 * 60 * 1000,      // 1 week
-    '1m': 30 * 24 * 60 * 60 * 1000,     // 1 month
-    '3m': 90 * 24 * 60 * 60 * 1000,     // 3 months
-    '6m': 180 * 24 * 60 * 60 * 1000,    // 6 months
-    '1y': 365 * 24 * 60 * 60 * 1000,    // 1 year
-    '5y': 5 * 365 * 24 * 60 * 60 * 1000 // 5 years
-  }
+const periodDefinitions = {
+  '1w': 7 * 24 * 60 * 60 * 1000,      // 1 week
+  '1m': 30 * 24 * 60 * 60 * 1000,     // 1 month
+  '3m': 90 * 24 * 60 * 60 * 1000,     // 3 months
+  '6m': 180 * 24 * 60 * 60 * 1000,    // 6 months
+  '1y': 365 * 24 * 60 * 60 * 1000,    // 1 year
+  '5y': 5 * 365 * 24 * 60 * 60 * 1000 // 5 years
+}
 // import { set } from 'core-js/core/dict'
 
 // Binary search helper function to find first index where point[0] >= cutoffTime
@@ -295,7 +307,7 @@ const chartOptions = ref({
     },
     tooltip: {
       callbacks: {
-        label: function(context) {
+        label: function (context) {
           const { quantity, total } = context.raw
           if (context.dataset.label === 'Buy Transactions' || context.dataset.label === 'Sell Transactions') {
             return `Quantity: ${quantity}, Total: €${total}`
@@ -303,7 +315,7 @@ const chartOptions = ref({
             return `${context.parsed.y} €`
           }
         },
-        title: function(tooltipItems) {
+        title: function (tooltipItems) {
           return `Date: ${tooltipItems[0].label}`
         }
       }
@@ -321,6 +333,48 @@ const chartOptions = ref({
 
 const holdings = ref([])
 const globalPeriod = ref('intraday')
+
+// Industry pie chart data
+const industryChartData = ref({
+  labels: [],
+  datasets: [{
+    data: [],
+    backgroundColor: [],
+    borderWidth: 1
+  }]
+})
+
+const pieChartOptions = ref({
+  responsive: true,
+  maintainAspectRatio: false,
+  layout: {
+  },
+  plugins: {
+    legend: {
+      position: 'bottom',
+      labels: {
+        // padding: 20,
+        usePointStyle: true,
+        boxWidth: 12,
+        font: {
+          size: 12
+        }
+      },
+      maxWidth: undefined, // Allow full width
+      maxHeight: undefined // Allow full height
+    },
+    tooltip: {
+      callbacks: {
+        label: function (context) {
+          const value = context.parsed
+          const total = context.dataset.data.reduce((sum, val) => sum + val, 0)
+          const percentage = ((value / total) * 100).toFixed(1)
+          return `${context.label}: €${value.toFixed(2)} (${percentage}%)`
+        }
+      }
+    }
+  }
+})
 
 // Update all holdings to use the global period
 const updateAllHoldingsPeriod = async () => {
@@ -348,6 +402,50 @@ const updateAllHoldingsPeriod = async () => {
   }
 }
 
+// Update industry pie chart data
+const updateIndustryChart = () => {
+  const industryMap = new Map()
+  const colors = [
+    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+    '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+    '#4BC0C0', '#FF6384', '#36A2EB', '#FFCE56'
+  ] // Reuse colors if more industries
+
+  // Aggregate holdings by industry
+  holdings.value.forEach((holding) => {
+    if (holding.industry && holding.industry !== 'Unknown') {
+      const industry = holding.industry
+      const value = holding.value || 0
+      if (!industryMap.has(industry)) {
+        industryMap.set(industry, 0)
+      }
+      industryMap.set(industry, industryMap.get(industry) + value)
+    }
+  })
+
+  // Convert to chart format
+  const labels = []
+  const data = []
+  const backgroundColors = []
+
+  Array.from(industryMap.entries())
+    .sort(([, a], [, b]) => b - a) // Sort by value descending
+    .forEach(([industry, value], index) => {
+      labels.push(industry)
+      data.push(parseFloat(value.toFixed(2)))
+      backgroundColors.push(colors[index % colors.length])
+    })
+
+  industryChartData.value = {
+    labels,
+    datasets: [{
+      data,
+      backgroundColor: backgroundColors,
+      borderWidth: 1
+    }]
+  }
+}
+
 // New ref for global period change tracking
 const hideUnknownHoldings = ref(false)
 
@@ -372,7 +470,7 @@ const filteredHoldings = computed(() => {
   return holdings.value.filter(holding => {
     const name = holding.name || ''
     const isNameKnown = name.trim() !== '' &&
-                       !name.toLowerCase().includes('unknown') 
+      !name.toLowerCase().includes('unknown')
 
     return isNameKnown
   })
@@ -431,58 +529,58 @@ const createChartFormat = (rawData, transactionData = [], period = 'intraday') =
   // Filter transactions by period
   const periodFilteredTransactions = filterTransactionsByPeriod(transactionData, period)
 
-        // Add transaction dots for Buy transactions (green upward triangle)
-        const buyTransactions = periodFilteredTransactions.filter(t => t.type === 'Investment Buy')
-        if (buyTransactions.length > 0) {
-          const buyPoints = buyTransactions.map(transaction => ({
-            x: new Date(transaction.timestamp).toLocaleString([], {
-              year: '2-digit', month: '2-digit', day: '2-digit',
-            }), // Convert back to seconds for chart
-            y: transaction.price,
-            quantity: transaction.quantity,
-            total: (transaction.quantity * transaction.price + (transaction.fee || 0)).toFixed(2)
-          }))
+  // Add transaction dots for Buy transactions (green upward triangle)
+  const buyTransactions = periodFilteredTransactions.filter(t => t.type === 'Investment Buy')
+  if (buyTransactions.length > 0) {
+    const buyPoints = buyTransactions.map(transaction => ({
+      x: new Date(transaction.timestamp).toLocaleString([], {
+        year: '2-digit', month: '2-digit', day: '2-digit',
+      }), // Convert back to seconds for chart
+      y: transaction.price,
+      quantity: transaction.quantity,
+      total: (transaction.quantity * transaction.price + (transaction.fee || 0)).toFixed(2)
+    }))
 
-          datasets.push({
-            label: 'Buy Transactions',
-            data: buyPoints,
-            borderColor: '#28a745',
-            backgroundColor: '#28a745',
-            borderWidth: 1,
-            pointStyle: 'triangle',
-            pointRadius: 6,
-            pointHoverRadius: 8,
-            pointRotation: 0, // Triangle pointing up
-            showLine: false,
-            tension: 0
-          })
-        }
+    datasets.push({
+      label: 'Buy Transactions',
+      data: buyPoints,
+      borderColor: '#28a745',
+      backgroundColor: '#28a745',
+      borderWidth: 1,
+      pointStyle: 'triangle',
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      pointRotation: 0, // Triangle pointing up
+      showLine: false,
+      tension: 0
+    })
+  }
 
-        // Add transaction dots for Sell transactions (red downward triangle)
-        const sellTransactions = periodFilteredTransactions.filter(t => t.type === 'Investment Sell')
-        if (sellTransactions.length > 0) {
-          const sellPoints = sellTransactions.map(transaction => ({
-            x: new Date(transaction.timestamp).toLocaleString([], {
-              year: '2-digit', month: '2-digit', day: '2-digit',
-            }), // Convert back to seconds for chart
-            y: transaction.price,
-            quantity: transaction.quantity,
-            total: (transaction.quantity * transaction.price + (transaction.fee || 0)).toFixed(2)
-          }))
-          datasets.push({
-            label: 'Sell Transactions',
-            data: sellPoints,
-            borderColor: '#dc3545',
-            backgroundColor: '#dc3545',
-            borderWidth: 1,
-            pointStyle: 'triangle',
-            pointRadius: 6,
-            pointHoverRadius: 8,
-            pointRotation: 180, // Triangle pointing down
-            showLine: false,
-            tension: 0
-          })
-        }
+  // Add transaction dots for Sell transactions (red downward triangle)
+  const sellTransactions = periodFilteredTransactions.filter(t => t.type === 'Investment Sell')
+  if (sellTransactions.length > 0) {
+    const sellPoints = sellTransactions.map(transaction => ({
+      x: new Date(transaction.timestamp).toLocaleString([], {
+        year: '2-digit', month: '2-digit', day: '2-digit',
+      }), // Convert back to seconds for chart
+      y: transaction.price,
+      quantity: transaction.quantity,
+      total: (transaction.quantity * transaction.price + (transaction.fee || 0)).toFixed(2)
+    }))
+    datasets.push({
+      label: 'Sell Transactions',
+      data: sellPoints,
+      borderColor: '#dc3545',
+      backgroundColor: '#dc3545',
+      borderWidth: 1,
+      pointStyle: 'triangle',
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      pointRotation: 180, // Triangle pointing down
+      showLine: false,
+      tension: 0
+    })
+  }
   return {
     labels: rawData.map(point =>
       new Date(point[0]).toLocaleString([], {
@@ -591,7 +689,7 @@ const setChartData = async () => {
           ),
           datasets: intradayDatasets
         }
-    }
+      }
 
       // Only process historical data if it exists and has length
       if (holding.history && holding.history.length > 0) {
@@ -682,6 +780,7 @@ const fetchPortfolio = async () => {
     }
 
     await setChartData()
+    updateIndustryChart()
 
   } catch (err) {
     console.error('Error fetching portfolio:', err.response.data.message)
@@ -1246,12 +1345,12 @@ onMounted(() => {
   transition: background-color 0.2s ease;
 }
 
-.checkbox-label input:checked + .checkmark {
+.checkbox-label input:checked+.checkmark {
   background: #007bff;
   border-color: #007bff;
 }
 
-.checkbox-label input:checked + .checkmark::after {
+.checkbox-label input:checked+.checkmark::after {
   content: '';
   position: absolute;
   top: 2px;
@@ -1267,7 +1366,40 @@ onMounted(() => {
   background: rgba(0, 123, 255, 0.1);
 }
 
-.checkbox-label input:checked + .checkmark:hover {
+.checkbox-label input:checked+.checkmark:hover {
   background: #0056b3;
+}
+
+.industry-pie-chart-section {
+  margin-top: 40px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.industry-pie-chart-section h2 {
+  margin: 0 0 20px 0;
+  color: #495057;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.pie-chart {
+  max-width: 800px;
+  margin: 0 auto;
+  min-height: 600px;
+}
+
+.empty-chart {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.empty-chart p {
+  margin: 0;
+  font-size: 16px;
 }
 </style>
