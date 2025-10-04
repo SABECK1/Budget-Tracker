@@ -62,7 +62,7 @@ A comprehensive personal finance management application with integrated stock po
    python manage.py migrate
    ```
 
-5. **Setup transaction categories** (optional)
+5. **Setup transaction categories** 
    ```bash
    python setup_transaction_types.py
    ```
