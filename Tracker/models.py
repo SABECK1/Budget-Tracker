@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 class TransactionType(models.Model):
     name = models.CharField(max_length=50, unique=True)  # e.g., "Income", "Expense"
@@ -43,7 +44,7 @@ class Transaction(models.Model):
         TransactionSubType, on_delete=models.PROTECT, related_name="transactions", default=1
     )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     note = models.TextField(blank=True)
     isin = models.CharField(max_length=12, blank=True)
     quantity = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
