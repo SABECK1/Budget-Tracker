@@ -27,12 +27,39 @@
       <!-- Portfolio Industry Pie Chart -->
       <div class="industry-pie-chart-section">
         <h2>Portfolio by Industry</h2>
-        <h3>Value by Industry</h3>
-        <div v-if="industryChartData.datasets[0].data.length > 0" class="chart-container">
-          <Chart type="pie" :data="industryChartData" :options="pieChartOptions" class="pie-chart" />
-        </div>
-        <div v-else-if="!loading" class="empty-chart">
-          <p>No industry data available for charting.</p>
+        <div class="charts-section">
+          <!-- Value Chart -->
+          <div class="chart-subsection">
+            <h3>Value by Industry</h3>
+            <div v-if="industryChartData.datasets[0].data.length > 0" class="chart-container">
+              <Chart type="pie" :data="industryChartData" :options="pieChartOptions" class="small-pie-chart" />
+            </div>
+            <div v-else-if="!loading" class="empty-chart">
+              <p>No industry data available for charting.</p>
+            </div>
+          </div>
+
+          <!-- Gains Chart -->
+          <div class="chart-subsection">
+            <h3>{{ getPeriodDisplayName(globalPeriod) }} Gains</h3>
+            <div v-if="gainsChartData.datasets[0].data.length > 0" class="chart-container">
+              <Chart type="pie" :data="gainsChartData" :options="pieChartOptions" class="small-pie-chart" />
+            </div>
+            <div v-else-if="!loading" class="empty-chart">
+              <p>No gains data for this period.</p>
+            </div>
+          </div>
+
+          <!-- Losses Chart -->
+          <div class="chart-subsection">
+            <h3>{{ getPeriodDisplayName(globalPeriod) }} Losses</h3>
+            <div v-if="lossesChartData.datasets[0].data.length > 0" class="chart-container">
+              <Chart type="pie" :data="lossesChartData" :options="pieChartOptions" class="small-pie-chart" />
+            </div>
+            <div v-else-if="!loading" class="empty-chart">
+              <p>No losses data for this period.</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -344,6 +371,25 @@ const industryChartData = ref({
   }]
 })
 
+// Gains and losses chart data
+const gainsChartData = ref({
+  labels: [],
+  datasets: [{
+    data: [],
+    backgroundColor: [],
+    borderWidth: 1
+  }]
+})
+
+const lossesChartData = ref({
+  labels: [],
+  datasets: [{
+    data: [],
+    backgroundColor: [],
+    borderWidth: 1
+  }]
+})
+
 const pieChartOptions = ref({
   responsive: true,
   maintainAspectRatio: false,
@@ -400,6 +446,9 @@ const updateAllHoldingsPeriod = async () => {
       await Promise.all(batchPromises)
     }
   }
+
+  // Update the gains/losses charts for the new period
+  updateGainsLossesCharts()
 }
 
 // Update industry pie chart data
@@ -413,7 +462,7 @@ const updateIndustryChart = () => {
 
   // Aggregate holdings by industry
   holdings.value.forEach((holding) => {
-    if (holding.industry && holding.industry !== 'Unknown') {
+    if (holding.industry && holding.industry) {
       const industry = holding.industry
       const value = holding.value || 0
       if (!industryMap.has(industry)) {
@@ -441,6 +490,87 @@ const updateIndustryChart = () => {
     datasets: [{
       data,
       backgroundColor: backgroundColors,
+      borderWidth: 1
+    }]
+  }
+}
+
+// Update gains and losses charts by industry
+const updateGainsLossesCharts = () => {
+  const gainsMap = new Map()
+  const lossesMap = new Map()
+  const colors = [
+    '#4CAF50', '#8BC34A', '#CDDC39', // Greens for gains
+    '#F44336', '#E91E63', '#9C27B0'  // Reds for losses
+  ]
+
+  // Calculate gains/losses by industry for the selected period
+  holdings.value.forEach((holding) => {
+    if (holding.industry && holding.industry) {
+      const industry = holding.industry
+      const changeAmount = periodChangeAmount(holding)
+      const holdingValue = holding.value || 0
+
+      // Calculate change as percentage or absolute value based on period
+      let changeValue = changeAmount * holdingValue / holding.current_price // Scale change by current value share
+      changeValue = parseFloat(changeValue.toFixed(2))
+
+      if (changeValue > 0) {
+        // Positive gain
+        if (!gainsMap.has(industry)) {
+          gainsMap.set(industry, 0)
+        }
+        gainsMap.set(industry, gainsMap.get(industry) + Math.abs(changeValue))
+      } else if (changeValue < 0) {
+        // Negative loss (stored as positive for chart)
+        if (!lossesMap.has(industry)) {
+          lossesMap.set(industry, 0)
+        }
+        lossesMap.set(industry, lossesMap.get(industry) + Math.abs(changeValue))
+      }
+    }
+  })
+
+  // Update gains chart
+  const gainsLabels = []
+  const gainsData = []
+  const gainsBackgroundColors = []
+
+  Array.from(gainsMap.entries())
+    .sort(([, a], [, b]) => b - a)
+    .forEach(([industry, gain], index) => {
+      gainsLabels.push(industry)
+      gainsData.push(parseFloat(gain.toFixed(2)))
+      gainsBackgroundColors.push(colors[index % colors.length]) // Use greens
+    })
+
+  gainsChartData.value = {
+    labels: gainsLabels,
+    datasets: [{
+      data: gainsData,
+      backgroundColor: gainsBackgroundColors,
+      borderWidth: 1
+    }]
+  }
+
+  // Update losses chart
+  const lossesLabels = []
+  const lossesData = []
+  const lossesBackgroundColors = []
+
+  Array.from(lossesMap.entries())
+    .sort(([, a], [, b]) => b - a)
+    .forEach(([industry, loss], index) => {
+      lossesLabels.push(industry)
+      lossesData.push(parseFloat(loss.toFixed(2)))
+      lossesBackgroundColors.push(colors[3 + (index % 3)]) // Use reds (offset by 3)
+    })
+
+  lossesChartData.value = {
+    labels: lossesLabels,
+    datasets: [{
+      data: lossesData,
+      backgroundColor: lossesBackgroundColors,
       borderWidth: 1
     }]
   }
@@ -781,6 +911,7 @@ const fetchPortfolio = async () => {
 
     await setChartData()
     updateIndustryChart()
+    updateGainsLossesCharts()
 
   } catch (err) {
     console.error('Error fetching portfolio:', err.response.data.message)
@@ -1391,6 +1522,12 @@ onMounted(() => {
   min-height: 600px;
 }
 
+.small-pie-chart {
+  max-width: 400px;
+  margin: 0 auto;
+  min-height: 300px;
+}
+
 .empty-chart {
   text-align: center;
   padding: 40px 20px;
@@ -1401,5 +1538,38 @@ onMounted(() => {
 .empty-chart p {
   margin: 0;
   font-size: 16px;
+}
+
+.chart-subsection {
+  margin-bottom: 30px;
+}
+
+.chart-subsection h4 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  font-size: 1.1rem;
+}
+
+.gains-losses-section {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.gains-losses-section h3 {
+  margin: 0 0 30px 0;
+  color: #495057;
+  font-size: 1.3rem;
+  text-align: center;
+}
+
+.charts-section {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  align-items: flex-start;
 }
 </style>
