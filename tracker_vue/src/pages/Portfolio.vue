@@ -462,7 +462,7 @@ const updateIndustryChart = () => {
 
   // Aggregate holdings by industry
   holdings.value.forEach((holding) => {
-    if (holding.industry && holding.industry) {
+    if (holding.industry && holding.industry !== 'Unknown') {
       const industry = holding.industry
       const value = holding.value || 0
       if (!industryMap.has(industry)) {
@@ -506,7 +506,7 @@ const updateGainsLossesCharts = () => {
 
   // Calculate gains/losses by industry for the selected period
   holdings.value.forEach((holding) => {
-    if (holding.industry && holding.industry) {
+    if (holding.industry && holding.industry !== 'Unknown') {
       const industry = holding.industry
       const changeAmount = periodChangeAmount(holding)
       const holdingValue = holding.value || 0
