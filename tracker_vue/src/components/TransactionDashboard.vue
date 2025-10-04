@@ -285,7 +285,7 @@ const expenseChartData = computed(() => {
 
 const savingsChartData = computed(() => {
     const savingsSubtypes = transactionSubtypes.value.filter(subtype =>
-        subtype.transaction_type_name === 'Savings'
+        subtype.transaction_type_name === 'Investment'
     );
 
     const labels = [];
