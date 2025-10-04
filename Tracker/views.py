@@ -51,11 +51,11 @@ class CSVUploadView(APIView):
             else:  # ISIN present
                 if amount < 0:
                     return TransactionSubType.objects.get(
-                        name="Investment Buy"
+                        name="Stock/ETF/Bond Purchase"
                     )  # Savings for stocks
                 else:
                     return TransactionSubType.objects.get(
-                        name="Investment Sell"
+                        name="Investment Returns"
                     )  # Income from Stocks
         except TransactionSubType.DoesNotExist:
             # Fallback to "Not assigned" subtype if specific ones don't exist
@@ -281,8 +281,8 @@ def portfolio_view(request):
             net_quantity=Sum(
                 F("quantity")
                 * Case(
-                    When(transaction_subtype__name="Investment Sell", then=-1),
-                    When(transaction_subtype__name="Investment Buy", then=1),
+                    When(transaction_subtype__name="Investment Returns", then=-1),
+                    When(transaction_subtype__name="Stock/ETF/Bond Purchase", then=1),
                     default=1,
                     output_field=models.FloatField(),
                 ),
@@ -544,8 +544,8 @@ def adjust_holding_view(request):
             net_quantity=Sum(
                 F("quantity")
                 * Case(
-                    When(transaction_subtype__name="Investment Sell", then=-1),
-                    When(transaction_subtype__name="Investment Buy", then=1),
+                    When(transaction_subtype__name="Investment Returns", then=-1),
+                    When(transaction_subtype__name="Stock/ETF/Bond Purchase", then=1),
                     default=1,
                     output_field=models.FloatField(),
                 ),
@@ -569,14 +569,14 @@ def adjust_holding_view(request):
         # Determine transaction type
         if shares_difference > 0:
             # Buy additional shares
-            transaction_subtype = TransactionSubType.objects.get(name="Investment Buy")
+            transaction_subtype = TransactionSubType.objects.get(name="Stock/ETF/Bond Purchase")
             amount = -(
                 abs(shares_difference) * current_price
             )  # Negative for money going out
             quantity = abs(shares_difference)
         else:
             # Sell shares
-            transaction_subtype = TransactionSubType.objects.get(name="Investment Sell")
+            transaction_subtype = TransactionSubType.objects.get(name="Investment Returns")
             amount = (
                 abs(shares_difference) * current_price
             )  # Positive for money coming in

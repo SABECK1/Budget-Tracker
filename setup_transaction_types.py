@@ -53,11 +53,7 @@ def main():
             "factor": -1,  # Can be both, but default to expense for tracking
             "description": "Investment related transactions",
             "subtypes": [
-                "Stocks",
-                "Bonds",
-                "Mutual Funds",
-                "ETFs",
-                "Cryptocurrency",
+                "Stock/ETF/Bond Purchase",
                 "Real Estate",
                 "Retirement Accounts",
                 "Other Investments"

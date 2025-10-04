@@ -659,8 +659,8 @@ const createChartFormat = (rawData, transactionData = [], period = 'intraday') =
   // Filter transactions by period
   const periodFilteredTransactions = filterTransactionsByPeriod(transactionData, period)
 
-  // Add transaction dots for Buy transactions (green upward triangle)
-  const buyTransactions = periodFilteredTransactions.filter(t => t.type === 'Investment Buy')
+        // Add transaction dots for Buy transactions (green upward triangle)
+        const buyTransactions = periodFilteredTransactions.filter(t => t.sub_type === 'Stock/ETF/Bond Purchase')
   if (buyTransactions.length > 0) {
     const buyPoints = buyTransactions.map(transaction => ({
       x: new Date(transaction.timestamp).toLocaleString([], {
@@ -686,8 +686,9 @@ const createChartFormat = (rawData, transactionData = [], period = 'intraday') =
     })
   }
 
-  // Add transaction dots for Sell transactions (red downward triangle)
-  const sellTransactions = periodFilteredTransactions.filter(t => t.type === 'Investment Sell')
+        // Add transaction dots for Sell transactions (red downward triangle)
+        const sellTransactions = periodFilteredTransactions.filter(t => t.type === 'Investment Returns')
+        // TODO: Update this to use subtype filtering once subtype is established
   if (sellTransactions.length > 0) {
     const sellPoints = sellTransactions.map(transaction => ({
       x: new Date(transaction.timestamp).toLocaleString([], {

@@ -51,11 +51,11 @@ class CSVUploadTestCase(APITestCase):
         )
         self.buy_subtype = TransactionSubType.objects.create(
             transaction_type=self.expense_type,
-            name="Investment Buy"
+            name="Stock/ETF/Bond Purchase"
         )
         self.sell_subtype = TransactionSubType.objects.create(
             transaction_type=self.income_type,
-            name="Investment Sell"
+            name="Investment Returns"
         )
         self.not_assigned_subtype = TransactionSubType.objects.create(
             transaction_type=self.expense_type,
@@ -475,11 +475,11 @@ class PortfolioViewTestCase(APITestCase):
         # Create transaction subtypes for stocks
         self.buy_subtype = TransactionSubType.objects.create(
             transaction_type=self.expense_type,
-            name="Investment Buy"
+            name="Stock/ETF/Bond Purchase"
         )
         self.sell_subtype = TransactionSubType.objects.create(
             transaction_type=self.income_type,
-            name="Investment Sell"
+            name="Investment Returns"
         )
 
     def test_portfolio_requires_authentication(self):
@@ -1019,11 +1019,11 @@ class AdjustHoldingTestCase(APITestCase):
         # Create transaction subtypes for stocks
         self.buy_subtype = TransactionSubType.objects.create(
             transaction_type=self.expense_type,
-            name="Investment Buy"
+            name="Stock/ETF/Bond Purchase"
         )
         self.sell_subtype = TransactionSubType.objects.create(
             transaction_type=self.income_type,
-            name="Investment Sell"
+            name="Investment Returns"
         )
 
     def test_adjust_holding_requires_authentication(self):
