@@ -256,7 +256,7 @@ class BankAccountViewSet(viewsets.ModelViewSet):
     API endpoint that allows Bank Accounts to be viewed or edited.
     """
 
-    queryset = BankAccount.objects.all().order_by("account_name")
+    queryset = BankAccount.objects.all().order_by("name")
     serializer_class = BankAccountSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -264,7 +264,7 @@ class BankAccountViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
     def get_queryset(self):
-        return BankAccount.objects.filter(user=self.request.user).order_by("account_name")
+        return BankAccount.objects.filter(user=self.request.user).order_by("name")
 
 
 class TransactionTypeViewSet(viewsets.ModelViewSet):

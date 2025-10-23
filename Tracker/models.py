@@ -40,14 +40,13 @@ class TransactionSubType(models.Model):
 
 class BankAccount(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="bank_accounts")
-    account_name = models.CharField(max_length=100, help_text="Name of the account (e.g., Checking, Savings)")
-    account_number = models.CharField(max_length=50, help_text="Unique account number")
-
-    class Meta:
-        unique_together = ("user", "account_number")
+    name = models.CharField(max_length=100, help_text="Name of the account (e.g., Checking, Savings)")
+    iban = models.CharField(max_length=34, blank=True, help_text="International Bank Account Number")
+    bic = models.CharField(max_length=11, blank=True, help_text="Bank Identifier Code")
+    bank_name = models.CharField(max_length=100, blank=True, help_text="Name of the bank")
 
     def __str__(self):
-        return f"{self.user} - {self.account_name} - {self.account_number}"
+        return f"{self.user} - {self.name}"
 
 
 class Transaction(models.Model):

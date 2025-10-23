@@ -731,11 +731,6 @@ const addTransaction = async () => {
                                         <span>{{ slotProps.data.bank_account_name || '-' }}</span>
                                     </template>
                                 </Column>
-                                <Column field="bank_account_number" header="Account Number" sortable>
-                                    <template #body="slotProps">
-                                        <span>{{ slotProps.data.bank_account_number || '-' }}</span>
-                                    </template>
-                                </Column>
                                 <Column field="amount" header="Amount" sortable>
                                     <template #body="slotProps">
                                         <input v-if="editingTransaction === slotProps.data.id" v-model="editForm.amount"
