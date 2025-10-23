@@ -5,41 +5,83 @@ from rest_framework import serializers
 # serializers.py
 from rest_framework import serializers
 
+
 class CSVUploadSerializer(serializers.Serializer):
     file = serializers.FileField()
 
     class Meta:
-        fields = ['file']
+        fields = ["file"]
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User
-        fields = ['url', 'username', 'email', 'groups']
+        fields = ["url", "username", "email", "groups"]
 
 
 class GroupSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Group
-        fields = ['url', 'name']
+        fields = ["url", "name"]
+
 
 class TransactionTypeSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = models.TransactionType
-        fields = ['url', 'id', 'name', 'description', 'expense_factor']
+        fields = ["url", "id", "name", "description", "expense_factor"]
+
 
 class TransactionSubtypeSerializer(serializers.ModelSerializer):
-    transaction_type_name = serializers.CharField(source='transaction_type.name', read_only=True)
+    transaction_type_name = serializers.CharField(
+        source="transaction_type.name", read_only=True
+    )
 
     class Meta:
         model = models.TransactionSubType
-        fields = ['id', 'transaction_type', 'transaction_type_name', 'name', 'description']
+        fields = [
+            "id",
+            "transaction_type",
+            "transaction_type_name",
+            "name",
+            "description",
+        ]
+
+
+class BankAccountSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = models.BankAccount
+        fields = [
+            "url",
+            "id",
+            "user",
+            "account_name",
+            "account_number",
+        ]
+
 
 class TransactionSerializer(serializers.HyperlinkedModelSerializer):
     transaction_subtype = serializers.PrimaryKeyRelatedField(
         queryset=models.TransactionSubType.objects.all()
     )
+    bank_account = serializers.PrimaryKeyRelatedField(
+        queryset=models.BankAccount.objects.all(), allow_null=True, required=False
+    )
+    bank_account_name = serializers.CharField(source="bank_account.account_name", read_only=True)
+    bank_account_number = serializers.CharField(source="bank_account.account_number", read_only=True)
 
     class Meta:
         model = models.Transaction
-        fields = ['id', 'transaction_subtype', 'amount', 'created_at', 'note', 'isin', 'quantity', 'fee', 'tax']
+        fields = [
+            "id",
+            "transaction_subtype",
+            "bank_account",
+            "bank_account_name",
+            "bank_account_number",
+            "amount",
+            "created_at",
+            "note",
+            "isin",
+            "quantity",
+            "fee",
+            "tax",
+        ]

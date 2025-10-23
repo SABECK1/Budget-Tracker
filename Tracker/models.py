@@ -38,11 +38,24 @@ class TransactionSubType(models.Model):
 #         return f"{self.user.username}'s profile"
 
 
+class BankAccount(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="bank_accounts")
+    account_name = models.CharField(max_length=100, help_text="Name of the account (e.g., Checking, Savings)")
+    account_number = models.CharField(max_length=50, help_text="Unique account number")
+
+    class Meta:
+        unique_together = ("user", "account_number")
+
+    def __str__(self):
+        return f"{self.user} - {self.account_name} - {self.account_number}"
+
+
 class Transaction(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="transactions")
     transaction_subtype = models.ForeignKey(
         TransactionSubType, on_delete=models.PROTECT, related_name="transactions", default=1
     )
+    bank_account = models.ForeignKey(BankAccount, on_delete=models.SET_NULL, null=True, blank=True, related_name="transactions")
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     created_at = models.DateTimeField(default=timezone.now)
     note = models.TextField(blank=True)

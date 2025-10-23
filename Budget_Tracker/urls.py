@@ -25,6 +25,7 @@ router.register(r'groups', views.GroupViewSet)
 router.register(r'transactions', views.TransactionViewSet)
 router.register(r'transactionsubtypes', views.TransactionSubtypeViewSet)
 router.register(r'transactiontypes', views.TransactionTypeViewSet)
+router.register(r'bankaccounts', views.BankAccountViewSet)
 
 
 

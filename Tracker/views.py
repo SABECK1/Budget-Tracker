@@ -2,7 +2,7 @@
 from django.contrib.auth.models import Group, User
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
-from Tracker.models import TransactionType, TransactionSubType, UserProvidedSymbol
+from Tracker.models import TransactionType, TransactionSubType, UserProvidedSymbol, BankAccount
 from .serializers import (
     GroupSerializer,
     UserSerializer,
@@ -10,6 +10,7 @@ from .serializers import (
     TransactionSerializer,
     TransactionTypeSerializer,
     CSVUploadSerializer,
+    BankAccountSerializer,
 )
 from datetime import datetime
 from django.utils import timezone
@@ -248,6 +249,22 @@ class TransactionViewSet(viewsets.ModelViewSet):
         ).update(transaction_subtype=transaction_subtype)
 
         return Response({"updated_count": updated_count}, status=status.HTTP_200_OK)
+
+
+class BankAccountViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows Bank Accounts to be viewed or edited.
+    """
+
+    queryset = BankAccount.objects.all().order_by("account_name")
+    serializer_class = BankAccountSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def get_queryset(self):
+        return BankAccount.objects.filter(user=self.request.user).order_by("account_name")
 
 
 class TransactionTypeViewSet(viewsets.ModelViewSet):
