@@ -9,10 +9,15 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Budget_Tracker.settings')
 django.setup()
 
+from django.core.management import call_command
 from Tracker.models import TransactionType
 
 def main():
     print("Starting Budget Tracker setup...")
+
+    # Run database migrations
+    print("Running database migrations...")
+    call_command('migrate', verbosity=0)
 
     # Check if setup_transaction_types has been run
     if TransactionType.objects.count() == 0:
