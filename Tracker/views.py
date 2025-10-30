@@ -120,6 +120,13 @@ class CSVUploadView(APIView):
             datetime_from_iso = datetime.fromisoformat(row[0])
             creation_datetime = timezone.make_aware(datetime_from_iso)
 
+            # Helper function to safely convert to float
+            def safe_float(value):
+                try:
+                    return float(value) if value else 0.0
+                except (ValueError, TypeError):
+                    return 0.0
+
             Transaction.objects.create(
                 user=request.user,
                 created_at=creation_datetime,
@@ -127,9 +134,9 @@ class CSVUploadView(APIView):
                 amount=amount,
                 note=note,
                 isin=row[4] if len(row) > 4 and row[4] else "",
-                quantity=float(row[5]) if len(row) > 5 and row[5] else float(0.0),
-                fee=float(row[6]) if len(row) > 6 and row[6] else float(0.0),
-                tax=float(row[7]) if len(row) > 7 and row[7] else float(0.0),
+                quantity=safe_float(row[5] if len(row) > 5 else None),
+                fee=safe_float(row[6] if len(row) > 6 else None),
+                tax=safe_float(row[7] if len(row) > 7 else None),
             )
             created_count += 1
 

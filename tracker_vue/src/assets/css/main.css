@@ -2,6 +2,46 @@
     --blue: #1e2761;
     --indigo: #408ec6;
     --red: #7a2048;
+    --body-bg: #000;
+    --text-color: #fff;
+
+    /* Additional uniform colors */
+    --dark-bg: #333;
+    --light-bg: #f8f9fa;
+    --text-muted: #495057;
+    --border-light: #dee2e6;
+    --border-medium: #ced4da;
+    --border-dark: #666;
+    --white: #fff;
+    --primary-blue: #007bff;
+    --secondary-gray: #6c757d;
+    --success-green: #28a745;
+    --danger-red: #dc3545;
+    --vue-green: #42b983;
+    --error-bg: #f8d7da;
+    --error-border: #f5c6cb;
+    --orange: #FFA726;
+    --hover-bg: #e9ecef;
+    --table-hover: #495057;
+
+    /* Chart colors */
+    --chart-1: #FF6384;
+    --chart-2: #36A2EB;
+    --chart-3: #FFCE56;
+    --chart-4: #4BC0C0;
+    --chart-5: #9966FF;
+    --chart-6: #FF9F40;
+    --chart-7: #C9CBCF;
+    --chart-8: #FF6384;
+    /* Reuse for more if needed */
+
+    /* Additional Portfolio colors */
+    --chart-green-1: #4CAF50;
+    --chart-green-2: #8BC34A;
+    --chart-green-3: #CDDC39;
+    --chart-red-1: #F44336;
+    --chart-red-2: #E91E63;
+    --chart-red-3: #9C27B0;
 }
 
 body {

@@ -1130,7 +1130,8 @@ onMounted(() => {
 }
 
 .insight-card {
-  background: #f8f9fa;
+  background: #333;
+  color: #fff;
   padding: 20px;
   border-radius: 8px;
   text-align: center;
@@ -1141,7 +1142,7 @@ onMounted(() => {
 
 .insight-card h3 {
   margin: 0 0 10px 0;
-  color: #495057;
+  color: #fff;
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1255,7 +1256,7 @@ onMounted(() => {
 }
 
 :deep(.p-datatable .p-datatable-tbody > tr:hover) {
-  background-color: #f8f9fa;
+  background-color: #495057;
 }
 
 :deep(.p-datatable .p-datatable-tbody > tr > td.p-cell-editing) {

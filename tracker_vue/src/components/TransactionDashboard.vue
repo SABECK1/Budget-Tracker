@@ -229,7 +229,14 @@ const incomeChartData = computed(() => {
     const labels = [];
     const data = [];
     const colors = [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-1').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-2').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-3').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-4').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-5').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-6').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-7').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-8').trim()
     ];
 
     incomeSubtypes.forEach(subtype => {
@@ -260,7 +267,14 @@ const expenseChartData = computed(() => {
     const labels = [];
     const data = [];
     const colors = [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-1').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-2').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-3').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-4').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-5').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-6').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-7').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-8').trim()
     ];
 
     expenseSubtypes.forEach(subtype => {
@@ -291,7 +305,14 @@ const savingsChartData = computed(() => {
     const labels = [];
     const data = [];
     const colors = [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-1').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-2').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-3').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-4').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-5').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-6').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-7').trim(),
+        getComputedStyle(document.documentElement).getPropertyValue('--chart-8').trim()
     ];
 
     savingsSubtypes.forEach(subtype => {
@@ -912,7 +933,8 @@ export default {
 }
 
 .insight-card {
-    background: #f8f9fa;
+    background: var(--dark-bg);
+    color: var(--text-color);
     padding: 20px;
     border-radius: 8px;
     text-align: center;
@@ -923,7 +945,7 @@ export default {
 
 .insight-card h3 {
     margin: 0 0 10px 0;
-    color: #495057;
+    color: var(--text-color);
     font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -936,10 +958,10 @@ export default {
 }
 
 .filter-section {
-    background: #f8f9fa;
+    background: var(--dark-bg);
     padding: 20px;
     border-radius: 8px;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border-light);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -962,7 +984,7 @@ export default {
 
 .filter-label {
     font-weight: 600;
-    color: #495057;
+    color: var(--text-muted);
     font-size: 14px;
     margin: 0;
     text-transform: uppercase;
@@ -972,15 +994,15 @@ export default {
 .filter-input {
     width: 250px;
     padding: 8px 12px;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--border-medium);
     border-radius: 4px;
     font-size: 14px;
-    background: #ffffff;
+    background: var(--white);
 }
 
 .filter-input:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: var(--primary-blue);
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
@@ -1009,7 +1031,7 @@ export default {
 
 .form-label {
     font-weight: 600;
-    color: #495057;
+    color: var(--text-muted);
     font-size: 14px;
     margin: 0 0 4px 0;
     text-transform: uppercase;
@@ -1017,9 +1039,9 @@ export default {
 }
 
 .charts-section {
-    background: #ffffff;
+    background: var(--dark-bg);
     border-radius: 8px;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border-dark);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
@@ -1032,7 +1054,11 @@ export default {
 .chart-card {
     flex: 1;
     min-width: 300px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr:hover) {
+  background-color: var(--table-hover);
 }
 
 .chart-container {
@@ -1052,7 +1078,7 @@ export default {
 }
 
 .no-data p {
-    color: #6c757d;
+    color: var(--text-color);
     font-style: italic;
     margin: 0;
 }
