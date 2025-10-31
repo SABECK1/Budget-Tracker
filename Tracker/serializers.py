@@ -3,7 +3,6 @@ from Tracker import models
 from rest_framework import serializers
 
 # serializers.py
-from rest_framework import serializers
 
 
 class CSVUploadSerializer(serializers.Serializer):
