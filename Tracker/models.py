@@ -39,11 +39,22 @@ class TransactionSubType(models.Model):
 
 
 class BankAccount(models.Model):
+    ACCOUNT_TYPES = [
+        ('trade_republic', 'Trade Republic'),
+        ('volksbank', 'Volksbank'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="bank_accounts")
     name = models.CharField(max_length=100, help_text="Name of the account (e.g., Checking, Savings)")
     iban = models.CharField(max_length=34, blank=True, help_text="International Bank Account Number")
     bic = models.CharField(max_length=11, blank=True, help_text="Bank Identifier Code")
     bank_name = models.CharField(max_length=100, blank=True, help_text="Name of the bank")
+    account_type = models.CharField(
+        max_length=20,
+        choices=ACCOUNT_TYPES,
+        blank=True,
+        help_text="Type of bank account for CSV processing"
+    )
 
     def __str__(self):
         return f"{self.user} - {self.name}"

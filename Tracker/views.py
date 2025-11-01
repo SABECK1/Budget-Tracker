@@ -74,6 +74,30 @@ class CSVUploadView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         csv_file = serializer.validated_data["file"]
+        bank_account = serializer.validated_data["bank_account"]
+
+        # Ensure the bank account belongs to the user
+        if bank_account.user != request.user:
+            return Response(
+                {"error": "Bank account does not belong to user"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Process CSV based on account type
+        if bank_account.account_type == 'trade_republic':
+            created_count = self.process_trade_republic_csv(request.user, csv_file, bank_account)
+        elif bank_account.account_type == 'volksbank':
+            created_count = self.process_volksbank_csv(request.user, csv_file, bank_account)
+        else:
+            # Default processing for accounts without specific type
+            created_count = self.process_default_csv(request.user, csv_file, bank_account)
+
+        return Response(
+            {"status": f"Imported {created_count} rows"}, status=status.HTTP_201_CREATED
+        )
+
+    def process_trade_republic_csv(self, user, csv_file, bank_account):
+        """Process Trade Republic CSV format"""
         data = csv_file.read().decode("utf-8")
         io_string = io.StringIO(data)
         reader = csv.reader(io_string, delimiter=";")
@@ -85,22 +109,22 @@ class CSVUploadView(APIView):
         for row in reader:
             if not row:  # skip empty lines
                 continue
-            # Check if ISIN is present and not empty to determine if it's a stock transaction
+
+            # Trade Republic specific processing
+            # Assuming format: Date;Type;Amount;Note;ISIN;Quantity;Fee;Tax
             isin = row[4] if len(row) > 4 and row[4] else ""
             is_stock = bool(isin)
             amount = float(row[2]) if row[2] else float(0.0)
             note = row[3] if len(row) > 3 and row[3] else ""
 
-            # Default subtype based on amount and ISIN
             transaction_subtype = self.get_transaction_subtype(is_stock, amount)
 
             # For stock transactions, check for existing transaction with same ISIN
-            # For regular transactions, check for existing transaction with same note
             if is_stock and isin:
                 amount_lookup = "amount__gt" if amount > 0 else "amount__lt"
                 existing_transaction = (
                     Transaction.objects.filter(
-                        user=request.user, isin=isin, **{amount_lookup: 0}
+                        user=user, isin=isin, **{amount_lookup: 0}
                     )
                     .exclude(transaction_subtype__isnull=True)
                     .first()
@@ -109,18 +133,16 @@ class CSVUploadView(APIView):
                     transaction_subtype = existing_transaction.transaction_subtype
             elif note:
                 existing_transaction = (
-                    Transaction.objects.filter(user=request.user, note=note)
+                    Transaction.objects.filter(user=user, note=note)
                     .exclude(transaction_subtype__isnull=True)
                     .first()
                 )
                 if existing_transaction:
                     transaction_subtype = existing_transaction.transaction_subtype
 
-            #Convert row[0] to timezone-aware datetime
             datetime_from_iso = datetime.fromisoformat(row[0])
             creation_datetime = timezone.make_aware(datetime_from_iso)
 
-            # Helper function to safely convert to float
             def safe_float(value):
                 try:
                     return float(value) if value else 0.0
@@ -128,7 +150,8 @@ class CSVUploadView(APIView):
                     return 0.0
 
             Transaction.objects.create(
-                user=request.user,
+                user=user,
+                bank_account=bank_account,
                 created_at=creation_datetime,
                 transaction_subtype=transaction_subtype,
                 amount=amount,
@@ -140,9 +163,79 @@ class CSVUploadView(APIView):
             )
             created_count += 1
 
-        return Response(
-            {"status": f"Imported {created_count} rows"}, status=status.HTTP_201_CREATED
-        )
+        return created_count
+
+    def process_volksbank_csv(self, user, csv_file, bank_account):
+        """Process Volksbank CSV format"""
+        # For now, use the same logic as Trade Republic
+        # This can be customized based on Volksbank's specific CSV format
+        return self.process_trade_republic_csv(user, csv_file, bank_account)
+
+    def process_default_csv(self, user, csv_file, bank_account):
+        """Process CSV for accounts without specific type"""
+        data = csv_file.read().decode("utf-8")
+        io_string = io.StringIO(data)
+        reader = csv.reader(io_string, delimiter=";")
+
+        # Skip header row manually
+        next(reader, None)
+
+        created_count = 0
+        for row in reader:
+            if not row:  # skip empty lines
+                continue
+
+            isin = row[4] if len(row) > 4 and row[4] else ""
+            is_stock = bool(isin)
+            amount = float(row[2]) if row[2] else float(0.0)
+            note = row[3] if len(row) > 3 and row[3] else ""
+
+            transaction_subtype = self.get_transaction_subtype(is_stock, amount)
+
+            if is_stock and isin:
+                amount_lookup = "amount__gt" if amount > 0 else "amount__lt"
+                existing_transaction = (
+                    Transaction.objects.filter(
+                        user=user, isin=isin, **{amount_lookup: 0}
+                    )
+                    .exclude(transaction_subtype__isnull=True)
+                    .first()
+                )
+                if existing_transaction:
+                    transaction_subtype = existing_transaction.transaction_subtype
+            elif note:
+                existing_transaction = (
+                    Transaction.objects.filter(user=user, note=note)
+                    .exclude(transaction_subtype__isnull=True)
+                    .first()
+                )
+                if existing_transaction:
+                    transaction_subtype = existing_transaction.transaction_subtype
+
+            datetime_from_iso = datetime.fromisoformat(row[0])
+            creation_datetime = timezone.make_aware(datetime_from_iso)
+
+            def safe_float(value):
+                try:
+                    return float(value) if value else 0.0
+                except (ValueError, TypeError):
+                    return 0.0
+
+            Transaction.objects.create(
+                user=user,
+                bank_account=bank_account,
+                created_at=creation_datetime,
+                transaction_subtype=transaction_subtype,
+                amount=amount,
+                note=note,
+                isin=row[4] if len(row) > 4 and row[4] else "",
+                quantity=safe_float(row[5] if len(row) > 5 else None),
+                fee=safe_float(row[6] if len(row) > 6 else None),
+                tax=safe_float(row[7] if len(row) > 7 else None),
+            )
+            created_count += 1
+
+        return created_count
 
 
 class UserViewSet(viewsets.ModelViewSet):

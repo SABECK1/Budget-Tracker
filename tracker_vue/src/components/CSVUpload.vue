@@ -1,49 +1,57 @@
 <script setup>
+import { ref, onMounted, computed } from "vue";
 import FileUpload from 'primevue/fileupload';
 import ProgressSpinner from 'primevue/progressspinner';
+import Dropdown from 'primevue/dropdown';
+import axios from "axios";
+import Cookies from 'js-cookie';
 
 axios.defaults.xsrfCookieName = "csrftoken";
 axios.defaults.xsrfHeaderName = "X-CSRFToken";
 axios.defaults.withCredentials = true;
-</script>
-<template>
-    <div class="card">
-        <FileUpload name="file" url="/api/upload-csv/" accept=".csv" :withCredentials="true"
-            :customUpload="true" @uploader="onUpload" :disabled="loading">
-            <template #empty>
-                <p>Drag and drop a CSV file here</p>
-            </template>
-        </FileUpload>
-
-        <div v-if="loading" class="mt-4 text-center">
-            <ProgressSpinner />
-            <p class="mt-2">Uploading CSV file...</p>
-        </div>
-
-        <div v-if="uploadResult && !loading" class="mt-4">
-            <p class="font-semibold">Upload Result:</p>
-            <pre>{{ uploadResult }}</pre>
-        </div>
-    </div>
-</template>
-
-<script>
-import { ref } from "vue";
-import axios from "axios";
-import Cookies from 'js-cookie';
 
 const uploadResult = ref(null);
 const loading = ref(false);
+const bankAccounts = ref([]);
+const selectedBankAccount = ref(null);
+const showValidation = ref(false);
+
+const uploadUrl = computed(() => {
+    return selectedBankAccount.value ? `${process.env.VUE_APP_API_BASE_URL}/upload-csv/` : '';
+});
+
+// Fetch bank accounts on component mount
+const fetchBankAccounts = async () => {
+    try {
+        const response = await axios.get(`${process.env.VUE_APP_API_BASE_URL}/bankaccounts/`, {
+            headers: {
+                'Content-Type': 'application/json',
+                "X-CSRFToken": Cookies.get('csrftoken'),
+            },
+            withCredentials: true,
+        });
+        bankAccounts.value = response.data || [];
+    } catch (error) {
+        console.error('Error fetching bank accounts:', error);
+    }
+};
 
 const onUpload = async (event) => {
     const file = event.files[0];
     if (!file) return;
 
+    if (!selectedBankAccount.value) {
+        showValidation.value = true;
+        return;
+    }
+
     loading.value = true;
     uploadResult.value = null;
+    showValidation.value = false;
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("bank_account", selectedBankAccount.value);
 
     try {
         const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/upload-csv/`, formData, {
@@ -54,11 +62,143 @@ const onUpload = async (event) => {
             credentials: 'include',
         });
 
-        uploadResult.value = `Success: ${response.data.message || 'CSV uploaded successfully'}`;
+        uploadResult.value = `Success: ${response.data.status || 'CSV uploaded successfully'}`;
     } catch (error) {
         uploadResult.value = `Error: ${error.response ? error.response.data : error.message}`;
     } finally {
         loading.value = false;
     }
 };
+
+onMounted(() => {
+    fetchBankAccounts();
+});
 </script>
+<template>
+    <div class="csv-upload-section">
+        <div class="filter-item">
+            <label for="bankAccount" class="filter-label">Select Bank Account</label>
+            <Dropdown
+                id="bankAccount"
+                v-model="selectedBankAccount"
+                :options="bankAccounts"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Choose a bank account"
+                class="filter-dropdown"
+                :class="{ 'p-invalid': !selectedBankAccount && showValidation }"
+            />
+            <small v-if="!selectedBankAccount && showValidation" class="p-error">Bank account is required</small>
+        </div>
+
+        <div class="upload-area">
+            <FileUpload
+                name="file"
+                :url="uploadUrl"
+                accept=".csv"
+                :withCredentials="true"
+                :customUpload="true"
+                @uploader="onUpload"
+                :disabled="loading || !selectedBankAccount"
+            >
+                <template #empty>
+                    <div class="upload-placeholder">
+                        <i class="pi pi-upload text-4xl text-primary mb-3"></i>
+                        <p class="text-lg">{{ selectedBankAccount ? 'Drag and drop a CSV file here' : 'Please select a bank account first' }}</p>
+                        <p class="text-sm text-gray-600" v-if="selectedBankAccount">Or click to browse and select a file</p>
+                    </div>
+                </template>
+            </FileUpload>
+        </div>
+
+        <div v-if="loading" class="loading-section">
+            <ProgressSpinner />
+            <p class="mt-2 text-primary">Uploading CSV file...</p>
+        </div>
+
+        <div v-if="uploadResult && !loading" class="result-section">
+            <div :class="uploadResult.startsWith('Success') ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'"
+                class="border-l-4 p-4 rounded">
+                <p class="font-semibold">{{ uploadResult.startsWith('Success') ? 'Success!' : 'Error!' }}</p>
+                <pre class="mt-2 whitespace-pre-wrap">{{ uploadResult }}</pre>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style scoped>
+.csv-upload-section {
+    background: var(--dark-bg);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.filter-label {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-dropdown {
+    width: 300px;
+}
+
+.upload-area {
+    margin-bottom: 20px;
+}
+
+.upload-placeholder {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-color);
+}
+
+.upload-placeholder i {
+    color: var(--primary-blue);
+}
+
+.upload-placeholder p {
+    margin: 0 0 8px 0;
+    color: var(--text-color);
+}
+
+.upload-placeholder .text-sm {
+    color: var(--text-muted);
+}
+
+.loading-section {
+    text-align: center;
+    padding: 20px;
+}
+
+.loading-section p {
+    color: var(--primary-blue);
+    margin: 8px 0 0 0;
+}
+
+.result-section {
+    margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .filter-dropdown {
+        width: 100%;
+    }
+
+    .upload-placeholder {
+        padding: 30px 15px;
+    }
+}
+</style>

@@ -23,6 +23,11 @@
               {{ slotProps.data.iban }}
             </template>
           </Column>
+          <Column field="account_type_display" header="Account Type" sortable>
+            <template #body="slotProps">
+              {{ slotProps.data.account_type_display || 'Not specified' }}
+            </template>
+          </Column>
           <Column field="bic" header="BIC" sortable>
             <template #body="slotProps">
               {{ slotProps.data.bic }}
@@ -65,6 +70,11 @@
           <small v-if="formErrors.bic" class="p-error">{{ formErrors.bic }}</small>
         </div>
         <div class="p-field">
+          <label for="account_type">Account Type</label>
+          <Dropdown id="account_type" v-model="accountForm.account_type" :options="accountTypeOptions" optionLabel="label" optionValue="value" placeholder="Select account type" :class="{ 'p-invalid': formErrors.account_type }" />
+          <small v-if="formErrors.account_type" class="p-error">{{ formErrors.account_type }}</small>
+        </div>
+        <div class="p-field">
           <label for="bank_name">Bank Name</label>
           <InputText id="bank_name" v-model="accountForm.bank_name" :class="{ 'p-invalid': formErrors.bank_name }" />
           <small v-if="formErrors.bank_name" class="p-error">{{ formErrors.bank_name }}</small>
@@ -99,6 +109,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import Dropdown from 'primevue/dropdown'
 import Dialog from 'primevue/dialog'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
@@ -117,15 +128,22 @@ const accountForm = reactive({
   name: '',
   iban: '',
   bic: '',
-  bank_name: ''
+  bank_name: '',
+  account_type: ''
 })
 
 const formErrors = reactive({
   name: '',
   iban: '',
   bic: '',
-  bank_name: ''
+  bank_name: '',
+  account_type: ''
 })
+
+const accountTypeOptions = [
+  { label: 'Trade Republic', value: 'trade_republic' },
+  { label: 'Volksbank', value: 'volksbank' }
+]
 
 // Fetch accounts from API
 const fetchAccounts = async () => {
@@ -238,6 +256,7 @@ const editAccount = (account) => {
   accountForm.iban = account.iban || ''
   accountForm.bic = account.bic || ''
   accountForm.bank_name = account.bank_name || ''
+  accountForm.account_type = account.account_type || ''
   showAddDialog.value = true
 }
 
@@ -274,6 +293,7 @@ const closeDialog = () => {
   accountForm.iban = ''
   accountForm.bic = ''
   accountForm.bank_name = ''
+  accountForm.account_type = ''
   Object.keys(formErrors).forEach(key => {
     formErrors[key] = ''
   })

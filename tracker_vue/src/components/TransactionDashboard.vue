@@ -3,7 +3,6 @@ import { ref, onMounted, computed, watch, nextTick } from "vue";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Card from "primevue/card";
-import FileUpload from 'primevue/fileupload';
 import ProgressSpinner from 'primevue/progressspinner';
 import InputText from "primevue/inputtext";
 import InputNumber from "primevue/inputnumber";
@@ -13,6 +12,7 @@ import Calendar from "primevue/calendar";
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
 import Chart from 'primevue/chart'
+import CSVUpload from './CSVUpload.vue';
 import axios from "axios";
 import Cookies from 'js-cookie';
 
@@ -47,9 +47,7 @@ const editForm = ref({
 const expandedData = ref(new Map()); // Cache for expanded row data
 const expandedLoading = ref(new Set()); // Track which rows are loading
 
-// CSV Upload state
-const csvUploadResult = ref(null);
-const csvUploading = ref(false);
+// CSV Upload state - moved to CSVUpload component
 
 // Filter state
 const noteFilter = ref('');
@@ -503,41 +501,7 @@ const deleteTransaction = async (transaction) => {
     }
 };
 
-// CSV Upload function
-const onCsvUpload = async (event) => {
-    const file = event.files[0];
-    if (!file) return;
 
-    csvUploading.value = true;
-    csvUploadResult.value = null;
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-        const response = await axios.post(`${baseurl}/upload-csv/`, formData, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-                'X-CSRFToken': Cookies.get('csrftoken'),
-            },
-            credentials: 'include',
-        });
-
-        csvUploadResult.value = `Success: ${response.data.message || 'CSV uploaded successfully'}`;
-
-        // Clear all cached expanded data since new transactions may have been added
-        expandedData.value.clear();
-
-        // Refresh transactions data after successful upload
-        const transactionsRes = await axios.get(`${baseurl}/transactions/`);
-        transactions.value = transactionsRes.data;
-
-    } catch (error) {
-        csvUploadResult.value = `Error: ${error.response ? error.response.data : error.message}`;
-    } finally {
-        csvUploading.value = false;
-    }
-};
 
 // Filter functions
 const clearFilters = () => {
@@ -872,32 +836,7 @@ const addTransaction = async () => {
         <Card class="mb-4" style="background-color: var(--dark-bg)">
             <template #title>Import Transactions</template>
             <template #content>
-                <div class="p-4">
-                    <FileUpload name="file" url="/api/upload-csv/" accept=".csv" :withCredentials="true"
-                        :customUpload="true" @uploader="onCsvUpload" :disabled="csvUploading">
-                        <template #empty>
-                            <div class="text-center p-4">
-                                <i class="pi pi-upload text-4xl text-primary mb-3"></i>
-                                <p class="text-lg">Drag and drop a CSV file here</p>
-                                <p class="text-sm text-gray-600">Or click to browse and select a file</p>
-                            </div>
-                        </template>
-                    </FileUpload>
-
-                    <div v-if="csvUploading" class="text-center mb-3">
-                        <ProgressSpinner />
-                        <p class="mt-2 text-primary">Uploading CSV file...</p>
-                    </div>
-
-                    <div v-if="csvUploadResult && !csvUploading" class="mt-3">
-                        <div :class="csvUploadResult.startsWith('Success') ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'"
-                            class="border-l-4 p-4 rounded">
-                            <p class="font-semibold">{{ csvUploadResult.startsWith('Success') ? 'Success!' : 'Error!' }}
-                            </p>
-                            <pre class="mt-2 whitespace-pre-wrap">{{ csvUploadResult }}</pre>
-                        </div>
-                    </div>
-                </div>
+                <CSVUpload />
             </template>
         </Card>
 

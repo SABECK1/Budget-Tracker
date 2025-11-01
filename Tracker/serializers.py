@@ -7,9 +7,12 @@ from rest_framework import serializers
 
 class CSVUploadSerializer(serializers.Serializer):
     file = serializers.FileField()
+    bank_account = serializers.PrimaryKeyRelatedField(
+        queryset=models.BankAccount.objects.all(), required=True
+    )
 
     class Meta:
-        fields = ["file"]
+        fields = ["file", "bank_account"]
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -56,6 +59,7 @@ class BankAccountSerializer(serializers.HyperlinkedModelSerializer):
             "iban",
             "bic",
             "bank_name",
+            "account_type",
         ]
 
 
