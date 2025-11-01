@@ -619,7 +619,7 @@ const addTransaction = async () => {
         <div class="charts-section mb-4">
             <div class="chart-row">
                 <!-- Income Chart -->
-                <Card class="chart-card">
+                <Card class="chart-card" style="background-color: var(--dark-bg)">
                     <template #title>Income Breakdown</template>
                     <template #content>
                         <div class="chart-container" v-if="incomeChartData.datasets[0].data.length > 0">
@@ -632,7 +632,7 @@ const addTransaction = async () => {
                 </Card>
 
                 <!-- Expense Chart -->
-                <Card class="chart-card">
+                <Card class="chart-card" style="background-color: var(--dark-bg)">
                     <template #title>Expense Breakdown</template>
                     <template #content>
                         <div class="chart-container" v-if="expenseChartData.datasets[0].data.length > 0">
@@ -645,7 +645,7 @@ const addTransaction = async () => {
                 </Card>
 
                 <!-- Savings (Investment) Chart -->
-                <Card class="chart-card">
+                <Card class="chart-card" style="background-color: var(--dark-bg)">
                     <template #title>Investment Breakdown</template>
                     <template #content>
                         <div class="chart-container" v-if="savingsChartData.datasets[0].data.length > 0">
@@ -691,7 +691,7 @@ const addTransaction = async () => {
         </div>
 
         <!-- Transactions by Subtype -->
-        <Card class="mb-4">
+        <Card class="mb-4" style="background-color: var(--dark-bg)">
             <template #title>Transactions by Subtype</template>
             <template #content>
                 <DataTable :value="transactionsBySubtype" :loading="loading" v-model:expandedRows="expandedRows"
@@ -836,7 +836,7 @@ const addTransaction = async () => {
         </Card>
 
         <!-- CSV Upload Section -->
-        <Card class="mb-4">
+        <Card class="mb-4" style="background-color: var(--dark-bg)">
             <template #title>Import Transactions</template>
             <template #content>
                 <div class="p-4">
@@ -869,7 +869,7 @@ const addTransaction = async () => {
         </Card>
 
         <!-- Add Transaction Form -->
-        <Card class="mb-4">
+        <Card class="mb-4" style="background-color: var(--dark-bg)">
             <template #title>Add Transaction Manually</template>
             <template #content>
                 <div class="p-fluid form-grid">
