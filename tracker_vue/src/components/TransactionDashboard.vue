@@ -54,6 +54,7 @@ const csvUploading = ref(false);
 // Filter state
 const noteFilter = ref('');
 const subtypeFilter = ref(null);
+const accountFilter = ref(null);
 const startDateFilter = ref(null);
 const endDateFilter = ref(null);
 
@@ -90,7 +91,7 @@ onMounted(async () => {
 });
 
 // Watch for filter changes to clear cache and reset expanded state
-watch([noteFilter, subtypeFilter, startDateFilter, endDateFilter], async () => {
+watch([noteFilter, subtypeFilter, accountFilter, startDateFilter, endDateFilter], async () => {
     // Clear expanded cache when filters change
     expandedData.value.clear();
 
@@ -117,6 +118,7 @@ const loadTransactionsForSubtype = async (subtypeId) => {
         // Check if filters have changed and we need to refilter
         if (cachedData.noteFilter !== noteFilter.value ||
             cachedData.subtypeFilter !== subtypeFilter.value ||
+            cachedData.accountFilter !== accountFilter.value ||
             cachedData.startDateFilter !== startDateFilter.value ||
             cachedData.endDateFilter !== endDateFilter.value) {
             // Filters changed, need to refetch and filter
@@ -144,6 +146,7 @@ const loadTransactionsForSubtype = async (subtypeId) => {
             },
             noteFilter: noteFilter.value, // Cache filter state
             subtypeFilter: subtypeFilter.value,
+            accountFilter: accountFilter.value,
             startDateFilter: startDateFilter.value,
             endDateFilter: endDateFilter.value
         };
@@ -450,20 +453,21 @@ const saveEdit = async (transaction) => {
             withCredentials: true,
         });
 
-        // Update the transaction in the local state
+        // Update the transaction in the main transactions array
         const index = transactions.value.findIndex(t => t.id === transaction.id);
         if (index !== -1) {
             transactions.value[index] = response.data;
         }
 
-        // Clear all cached data since bulk update may have affected multiple subtypes
-        expandedData.value.clear();
+        // Update the transaction in all cached expanded data
+        for (const [subtypeId, cachedData] of expandedData.value) {
+            const transactionIndex = cachedData.transactions.findIndex(t => t.id === transaction.id);
+            if (transactionIndex !== -1) {
+                cachedData.transactions[transactionIndex] = response.data;
+            }
+        }
 
         cancelEdit();
-
-        // Refresh the data to update the grouped view
-        const transactionsRes = await axios.get(`${baseurl}/transactions/`);
-        transactions.value = transactionsRes.data;
 
     } catch (err) {
         console.error("Error updating transaction:", err);
@@ -539,6 +543,7 @@ const onCsvUpload = async (event) => {
 const clearFilters = () => {
     noteFilter.value = '';
     subtypeFilter.value = null;
+    accountFilter.value = null;
     startDateFilter.value = null;
     endDateFilter.value = null;
 };
@@ -552,6 +557,9 @@ const filterTransactions = (transactionsList) => {
         const matchesSubtype = !subtypeFilter.value ||
             transaction.transaction_subtype === subtypeFilter.value;
 
+        const matchesAccount = !accountFilter.value ||
+            transaction.bank_account === accountFilter.value;
+
         const transactionDate = new Date(transaction.created_at).getTime();
         const startDate = startDateFilter.value ? new Date(startDateFilter.value).getTime() : null;
         const endDate = endDateFilter.value ? new Date(endDateFilter.value).getTime() + (24 * 60 * 60 * 1000) - 1 : null; // End of day
@@ -559,7 +567,7 @@ const filterTransactions = (transactionsList) => {
         const matchesDate = (!startDate || transactionDate >= startDate) &&
                            (!endDate || transactionDate <= endDate);
 
-        return matchesNote && matchesSubtype && matchesDate;
+        return matchesNote && matchesSubtype && matchesAccount && matchesDate;
     });
 };
 
@@ -682,6 +690,12 @@ const addTransaction = async () => {
                     <label for="subtype-filter" class="filter-label">Filter by Type:</label>
                     <Dropdown id="subtype-filter" v-model="subtypeFilter" :options="transactionSubtypes"
                         option-label="name" option-value="id" placeholder="All types" show-clear
+                        class="filter-dropdown" />
+                </div>
+                <div class="filter-item">
+                    <label for="account-filter" class="filter-label">Filter by Account:</label>
+                    <Dropdown id="account-filter" v-model="accountFilter" :options="bankAccounts"
+                        option-label="name" option-value="id" placeholder="All accounts" show-clear
                         class="filter-dropdown" />
                 </div>
                 <div class="filter-item">
