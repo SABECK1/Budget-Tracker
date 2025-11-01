@@ -27,11 +27,13 @@ const toast = useToast();
 // State
 const transactions = ref([]);
 const transactionSubtypes = ref([]);
+const bankAccounts = ref([]);
 const loading = ref(true);
 const expandedRows = ref([]);
 const editingTransaction = ref(null);
 const editForm = ref({
     transaction_subtype: null,
+    bank_account: null,
     amount: '',
     note: '',
     isin: '',
@@ -58,6 +60,7 @@ const endDateFilter = ref(null);
 // Add transaction state
 const addForm = ref({
     transaction_subtype: null,
+    bank_account: null,
     amount: '',
     note: '',
     isin: '',
@@ -69,9 +72,13 @@ const addForm = ref({
 // Fetch data on mount
 onMounted(async () => {
     try {
-        // Only load subtypes initially, not all transactions
-        const subtypesRes = await axios.get(`${baseurl}/transactionsubtypes/`);
+        // Load subtypes and bank accounts initially
+        const [subtypesRes, accountsRes] = await Promise.all([
+            axios.get(`${baseurl}/transactionsubtypes/`),
+            axios.get(`${baseurl}/bankaccounts/`)
+        ]);
         transactionSubtypes.value = subtypesRes.data;
+        bankAccounts.value = accountsRes.data;
 
         // Load transaction counts by subtype for the summary table
         await loadTransactionCounts();
@@ -369,6 +376,7 @@ const startEdit = (transaction) => {
     editingTransaction.value = transaction.id;
     editForm.value = {
         transaction_subtype: transaction.transaction_subtype,
+        bank_account: transaction.bank_account,
         amount: transaction.amount,
         note: transaction.note,
         isin: transaction.isin,
@@ -383,6 +391,7 @@ const cancelEdit = () => {
     editingTransaction.value = null;
     editForm.value = {
         transaction_subtype: null,
+        bank_account: null,
         amount: '',
         note: '',
         isin: '',
@@ -427,6 +436,7 @@ const saveEdit = async (transaction) => {
         // Update the individual transaction
         const response = await axios.patch(`${baseurl}/transactions/${transaction.id}/`, {
             transaction_subtype: editForm.value.transaction_subtype,
+            bank_account: editForm.value.bank_account,
             amount: editForm.value.amount,
             note: editForm.value.note,
             isin: editForm.value.isin,
@@ -571,6 +581,7 @@ const addTransaction = async () => {
         // Clear form
         addForm.value = {
             transaction_subtype: null,
+            bank_account: null,
             amount: '',
             note: '',
             isin: '',
@@ -747,9 +758,17 @@ const addTransaction = async () => {
                                             'Unknown' }}</span>
                                     </template>
                                 </Column>
-                                <Column field="bank_account_name" header="Account Name" sortable>
+                                <Column header="Account Name">
                                     <template #body="slotProps">
-                                        <span>{{ slotProps.data.bank_account_name || '-' }}</span>
+                                        <select v-if="editingTransaction === slotProps.data.id"
+                                            v-model="editForm.bank_account" class="form-control">
+                                            <option value="">No Account</option>
+                                            <option v-for="account in bankAccounts" :key="account.id"
+                                                :value="account.id">
+                                                {{ account.name }}
+                                            </option>
+                                        </select>
+                                        <span v-else>{{ slotProps.data.bank_account_name || '-' }}</span>
                                     </template>
                                 </Column>
                                 <Column field="amount" header="Amount" sortable>
@@ -878,6 +897,12 @@ const addTransaction = async () => {
                         <Dropdown id="add-transaction_subtype" v-model="addForm.transaction_subtype"
                             :options="transactionSubtypes" option-label="name" option-value="id"
                             placeholder="Select transaction type" class="w-full" />
+                    </div>
+                    <div class="field">
+                        <label for="add-bank_account" class="form-label">Account</label>
+                        <Dropdown id="add-bank_account" v-model="addForm.bank_account"
+                            :options="bankAccounts" option-label="name" option-value="id"
+                            placeholder="Select account (optional)" show-clear class="w-full" />
                     </div>
                     <div class="field">
                         <label for="add-amount" class="form-label">Amount *</label>
