@@ -24,10 +24,15 @@
     --hover-bg: #e9ecef;
     --table-hover: #495057;
 
-    /* Chart colors */
-    --chart-1: #FF6384;
-    --chart-2: #36A2EB;
-    --chart-3: #FFCE56;
+    /* Chart colors - Transaction Types */
+    --chart-income: #28a745;    /* Green for Income */
+    --chart-expense: #dc3545;   /* Red for Expense */
+    --chart-savings: #007bff;   /* Blue for Savings/Investment */
+
+    /* Legacy chart colors (keeping for compatibility) */
+    --chart-1: var(--chart-income);
+    --chart-2: var(--chart-expense);
+    --chart-3: var(--chart-savings);
     --chart-4: #4BC0C0;
     --chart-5: #9966FF;
     --chart-6: #FF9F40;

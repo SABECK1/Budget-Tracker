@@ -56,6 +56,16 @@ const accountFilter = ref(null);
 const startDateFilter = ref(null);
 const endDateFilter = ref(null);
 
+// Chart time period state
+const chartTimePeriod = ref('month'); // 'day', 'week', 'month'
+
+// Time period options for dropdown
+const timePeriodOptions = [
+    { label: 'Daily', value: 'day' },
+    { label: 'Weekly', value: 'week' },
+    { label: 'Monthly', value: 'month' }
+];
+
 // Add transaction state
 const addForm = ref({
     transaction_subtype: null,
@@ -353,6 +363,173 @@ const chartOptions = {
             callbacks: {
                 label: function (context) {
                     return `${context.label}: €${context.parsed.toFixed(2)}`;
+                }
+            }
+        }
+    }
+};
+
+// Helper functions for time period grouping
+const getDayKey = (date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const getWeekKey = (date) => {
+    const startOfWeek = new Date(date);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+    startOfWeek.setDate(diff);
+    return `${startOfWeek.getFullYear()}-W${String(Math.ceil((startOfWeek.getDate() - startOfWeek.getDay() + 1) / 7)).padStart(2, '0')}`;
+};
+
+const getMonthKey = (date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const formatDayLabel = (dayKey) => {
+    const [year, month, day] = dayKey.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+const formatWeekLabel = (weekKey) => {
+    const [year, week] = weekKey.split('-W');
+    const weekNum = parseInt(week);
+    const startDate = new Date(parseInt(year), 0, 1 + (weekNum - 1) * 7);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    return `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+};
+
+const formatMonthLabel = (monthKey) => {
+    const [year, monthNum] = monthKey.split('-');
+    const date = new Date(parseInt(year), parseInt(monthNum) - 1);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+};
+
+// Bar chart data for time period overview
+const monthlyOverviewChartData = computed(() => {
+    // Group transactions by selected time period and transaction type
+    const timeData = {};
+
+    filteredTransactions.value.forEach(transaction => {
+        const date = new Date(transaction.created_at);
+        let timeKey;
+
+        switch (chartTimePeriod.value) {
+            case 'day':
+                timeKey = getDayKey(date);
+                break;
+            case 'week':
+                timeKey = getWeekKey(date);
+                break;
+            case 'month':
+            default:
+                timeKey = getMonthKey(date);
+                break;
+        }
+
+        const transactionType = getSubtypeById(transaction.transaction_subtype)?.transaction_type_name;
+
+        if (!transactionType) return;
+
+        if (!timeData[timeKey]) {
+            timeData[timeKey] = {
+                timeKey,
+                Income: 0,
+                Expense: 0,
+                Investment: 0
+            };
+        }
+
+        // Add absolute value of amount to the appropriate category
+        const amount = Math.abs(parseFloat(transaction.amount || 0));
+        if (transactionType === 'Income') {
+            timeData[timeKey].Income += amount;
+        } else if (transactionType === 'Expense') {
+            timeData[timeKey].Expense += amount;
+        } else if (transactionType === 'Investment') {
+            timeData[timeKey].Investment += amount;
+        }
+    });
+
+    // Sort time periods chronologically
+    const sortedTimeKeys = Object.keys(timeData).sort();
+
+    // Prepare data for Chart.js
+    const labels = sortedTimeKeys.map(timeKey => {
+        switch (chartTimePeriod.value) {
+            case 'day':
+                return formatDayLabel(timeKey);
+            case 'week':
+                return formatWeekLabel(timeKey);
+            case 'month':
+            default:
+                return formatMonthLabel(timeKey);
+        }
+    });
+
+    const incomeData = sortedTimeKeys.map(timeKey => timeData[timeKey].Income);
+    const expenseData = sortedTimeKeys.map(timeKey => timeData[timeKey].Expense);
+    const investmentData = sortedTimeKeys.map(timeKey => timeData[timeKey].Investment);
+
+    return {
+        labels,
+        datasets: [
+            {
+                label: 'Income',
+                data: incomeData,
+                backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-income').trim(),
+                borderColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-income').trim(),
+                borderWidth: 1
+            },
+            {
+                label: 'Expense',
+                data: expenseData,
+                backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-expense').trim(),
+                borderColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-expense').trim(),
+                borderWidth: 1
+            },
+            {
+                label: 'Investment',
+                data: investmentData,
+                backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-savings').trim(),
+                borderColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-savings').trim(),
+                borderWidth: 1
+            }
+        ]
+    };
+});
+
+const barChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            position: 'top'
+        },
+        tooltip: {
+            callbacks: {
+                label: function (context) {
+                    return `${context.dataset.label}: €${context.parsed.y.toFixed(2)}`;
+                }
+            }
+        }
+    },
+    scales: {
+        x: {
+            stacked: false,
+            ticks: {
+                maxRotation: 45,
+                minRotation: 45
+            }
+        },
+        y: {
+            stacked: false,
+            beginAtZero: true,
+            ticks: {
+                callback: function(value) {
+                    return '€' + value.toFixed(0);
                 }
             }
         }
@@ -692,6 +869,28 @@ const addTransaction = async () => {
                 </Card>
             </div>
         </div>
+
+        <!-- Monthly Overview Barchart -->
+        <Card class="mb-4" style="background-color: var(--dark-bg)">
+            <template #title>
+                <div class="chart-header">
+                    <span>{{ chartTimePeriod.charAt(0).toUpperCase() + chartTimePeriod.slice(1) }} Overview (Income, Expense, Investment)</span>
+                    <div class="time-period-selector">
+                        <label for="time-period-select" class="time-period-label">Time Period:</label>
+                        <Dropdown id="time-period-select" v-model="chartTimePeriod" :options="timePeriodOptions"
+                            option-label="label" option-value="value" class="time-period-dropdown" />
+                    </div>
+                </div>
+            </template>
+            <template #content>
+                <div class="barchart-container" v-if="monthlyOverviewChartData.datasets.some(ds => ds.data.some(val => val > 0))">
+                    <Chart type="bar" :data="monthlyOverviewChartData" :options="barChartOptions" style="height: 100%; width: 100%;" />
+                </div>
+                <div class="no-data" v-else>
+                    <p class="text-center text-muted">No transaction data available for {{ chartTimePeriod }} overview</p>
+                </div>
+            </template>
+        </Card>
 
         <!-- Transactions by Subtype -->
         <Card class="mb-4" style="background-color: var(--dark-bg)">
@@ -1061,6 +1260,14 @@ export default {
     padding: 20px;
 }
 
+.barchart-container {
+    height: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
 .no-data {
     height: 300px;
     display: flex;
@@ -1073,6 +1280,33 @@ export default {
     color: var(--text-color);
     font-style: italic;
     margin: 0;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.time-period-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.time-period-label {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.time-period-dropdown {
+    width: 120px;
 }
 
 @media (max-width: 768px) {
@@ -1101,6 +1335,16 @@ export default {
 
     .chart-card {
         min-width: unset;
+    }
+
+    .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .time-period-selector {
+        align-self: flex-end;
     }
 }
 </style>
