@@ -535,6 +535,20 @@ const filterTransactions = (transactionsList) => {
     });
 };
 
+// Refresh data function (called after CSV upload)
+const refreshData = async () => {
+    try {
+        // Refresh the transaction data
+        await loadTransactionCounts();
+        // Clear expanded data cache since new data may have been added
+        expandedData.value.clear();
+        // Reset expanded rows to avoid conflicts
+        expandedRows.value = [];
+    } catch (err) {
+        console.error("Error refreshing data:", err);
+    }
+};
+
 // Add transaction function
 const addTransaction = async () => {
     if (!addForm.value.transaction_subtype || !addForm.value.amount) {
@@ -569,7 +583,7 @@ const addTransaction = async () => {
         toast.add({ severity: 'success', summary: 'Success', detail: 'Transaction added successfully.', life: 3000 });
     } catch (err) {
         console.error("Error adding transaction:", err.toJSON());
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Error adding transaction. Please try again.', life: 5000 });
+        toast.add({ severity: 'error', summary: 'Error adding transaction. Please try again.', life: 5000 });
     }
 };
 </script>
@@ -595,6 +609,43 @@ const addTransaction = async () => {
             <div class="insight-card">
                 <h3>Total Taxes</h3>
                 <p class="text-orange-600">{{ formatCurrency(totalTaxes) }}</p>
+            </div>
+        </div>
+
+                <!-- Global Filters -->
+        <div class="filter-section mb-4">
+            <div class="filter-controls">
+                <div class="filter-item">
+                    <label for="note-filter" class="filter-label">Search Notes:</label>
+                    <InputText id="note-filter" v-model="noteFilter" placeholder="Search transaction notes..."
+                        class="filter-input" />
+                </div>
+                <div class="filter-item">
+                    <label for="subtype-filter" class="filter-label">Filter by Type:</label>
+                    <Dropdown id="subtype-filter" v-model="subtypeFilter" :options="transactionSubtypes"
+                        option-label="name" option-value="id" placeholder="All types" show-clear
+                        class="filter-dropdown" />
+                </div>
+                <div class="filter-item">
+                    <label for="account-filter" class="filter-label">Filter by Account:</label>
+                    <Dropdown id="account-filter" v-model="accountFilter" :options="bankAccounts"
+                        option-label="name" option-value="id" placeholder="All accounts" show-clear
+                        class="filter-dropdown" />
+                </div>
+                <div class="filter-item">
+                    <label for="start-date-filter" class="filter-label">Start Date:</label>
+                    <Calendar id="start-date-filter" v-model="startDateFilter" placeholder="Select start date"
+                        :maxDate="endDateFilter" showIcon class="filter-calendar" />
+                </div>
+                <div class="filter-item">
+                    <label for="end-date-filter" class="filter-label">End Date:</label>
+                    <Calendar id="end-date-filter" v-model="endDateFilter" placeholder="Select end date"
+                        :minDate="startDateFilter" showIcon class="filter-calendar" />
+                </div>
+                <div class="filter-item">
+                    <Button label="Clear Filters" icon="pi pi-times" class="p-button-secondary p-button-sm"
+                        @click="clearFilters" />
+                </div>
             </div>
         </div>
 
@@ -639,43 +690,6 @@ const addTransaction = async () => {
                         </div>
                     </template>
                 </Card>
-            </div>
-        </div>
-
-        <!-- Global Filters -->
-        <div class="filter-section mb-4">
-            <div class="filter-controls">
-                <div class="filter-item">
-                    <label for="note-filter" class="filter-label">Search Notes:</label>
-                    <InputText id="note-filter" v-model="noteFilter" placeholder="Search transaction notes..."
-                        class="filter-input" />
-                </div>
-                <div class="filter-item">
-                    <label for="subtype-filter" class="filter-label">Filter by Type:</label>
-                    <Dropdown id="subtype-filter" v-model="subtypeFilter" :options="transactionSubtypes"
-                        option-label="name" option-value="id" placeholder="All types" show-clear
-                        class="filter-dropdown" />
-                </div>
-                <div class="filter-item">
-                    <label for="account-filter" class="filter-label">Filter by Account:</label>
-                    <Dropdown id="account-filter" v-model="accountFilter" :options="bankAccounts"
-                        option-label="name" option-value="id" placeholder="All accounts" show-clear
-                        class="filter-dropdown" />
-                </div>
-                <div class="filter-item">
-                    <label for="start-date-filter" class="filter-label">Start Date:</label>
-                    <Calendar id="start-date-filter" v-model="startDateFilter" placeholder="Select start date"
-                        :maxDate="endDateFilter" showIcon class="filter-calendar" />
-                </div>
-                <div class="filter-item">
-                    <label for="end-date-filter" class="filter-label">End Date:</label>
-                    <Calendar id="end-date-filter" v-model="endDateFilter" placeholder="Select end date"
-                        :minDate="startDateFilter" showIcon class="filter-calendar" />
-                </div>
-                <div class="filter-item">
-                    <Button label="Clear Filters" icon="pi pi-times" class="p-button-secondary p-button-sm"
-                        @click="clearFilters" />
-                </div>
             </div>
         </div>
 
@@ -836,7 +850,7 @@ const addTransaction = async () => {
         <Card class="mb-4" style="background-color: var(--dark-bg)">
             <template #title>Import Transactions</template>
             <template #content>
-                <CSVUpload />
+                <CSVUpload @upload-success="refreshData" />
             </template>
         </Card>
 

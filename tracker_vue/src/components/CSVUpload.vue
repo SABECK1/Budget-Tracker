@@ -1,16 +1,20 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, defineEmits } from "vue";
 import FileUpload from 'primevue/fileupload';
 import ProgressSpinner from 'primevue/progressspinner';
 import Dropdown from 'primevue/dropdown';
+import { useToast } from 'primevue/usetoast';
 import axios from "axios";
 import Cookies from 'js-cookie';
+
+// Define emits
+const emit = defineEmits(['upload-success']);
 
 axios.defaults.xsrfCookieName = "csrftoken";
 axios.defaults.xsrfHeaderName = "X-CSRFToken";
 axios.defaults.withCredentials = true;
 
-const uploadResult = ref(null);
+const toast = useToast();
 const loading = ref(false);
 const bankAccounts = ref([]);
 const selectedBankAccount = ref(null);
@@ -46,7 +50,6 @@ const onUpload = async (event) => {
     }
 
     loading.value = true;
-    uploadResult.value = null;
     showValidation.value = false;
 
     const formData = new FormData();
@@ -62,9 +65,22 @@ const onUpload = async (event) => {
             credentials: 'include',
         });
 
-        uploadResult.value = `Success: ${response.data.status || 'CSV uploaded successfully'}`;
+        toast.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: response.data.status || 'CSV uploaded successfully',
+            life: 5000
+        });
+
+        // Emit event to refresh data in parent component
+        emit('upload-success');
     } catch (error) {
-        uploadResult.value = `Error: ${error.response ? error.response.data : error.message}`;
+        toast.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: error.message,
+            life: 5000
+        });
     } finally {
         loading.value = false;
     }
@@ -114,14 +130,6 @@ onMounted(() => {
         <div v-if="loading" class="loading-section">
             <ProgressSpinner />
             <p class="mt-2 text-primary">Uploading CSV file...</p>
-        </div>
-
-        <div v-if="uploadResult && !loading" class="result-section">
-            <div :class="uploadResult.startsWith('Success') ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'"
-                class="border-l-4 p-4 rounded">
-                <p class="font-semibold">{{ uploadResult.startsWith('Success') ? 'Success!' : 'Error!' }}</p>
-                <pre class="mt-2 whitespace-pre-wrap">{{ uploadResult }}</pre>
-            </div>
         </div>
     </div>
 </template>
@@ -186,10 +194,6 @@ onMounted(() => {
 .loading-section p {
     color: var(--primary-blue);
     margin: 8px 0 0 0;
-}
-
-.result-section {
-    margin-top: 20px;
 }
 
 @media (max-width: 768px) {
