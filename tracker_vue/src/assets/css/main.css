@@ -2,7 +2,7 @@
     --blue: #1e2761;
     --indigo: #408ec6;
     --red: #7a2048;
-    --body-bg: #000;
+    --body-bg: #a000;
     --text-color: #fff;
 
     /* Additional uniform colors */
@@ -25,9 +25,12 @@
     --table-hover: #495057;
 
     /* Chart colors - Transaction Types */
-    --chart-income: #28a745;    /* Green for Income */
-    --chart-expense: #dc3545;   /* Red for Expense */
-    --chart-savings: #007bff;   /* Blue for Savings/Investment */
+    --chart-income: #28a745;
+    /* Green for Income */
+    --chart-expense: #dc3545;
+    /* Red for Expense */
+    --chart-savings: #007bff;
+    /* Blue for Savings/Investment */
 
     /* Legacy chart colors (keeping for compatibility) */
     --chart-1: var(--chart-income);

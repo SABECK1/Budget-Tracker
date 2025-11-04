@@ -1487,17 +1487,17 @@ onMounted(() => {
 .checkbox-label .checkmark {
   width: 18px;
   height: 18px;
-  border: 2px solid #007bff;
+  border: 2px solid var(--primary-blue);
   border-radius: 3px;
   margin-right: 8px;
   position: relative;
-  background: #fff;
+  background: var(--white);
   transition: background-color 0.2s ease;
 }
 
 .checkbox-label input:checked+.checkmark {
-  background: #007bff;
-  border-color: #007bff;
+  background: var(--primary-blue);
+  border-color: var(--primary-blue);
 }
 
 .checkbox-label input:checked+.checkmark::after {
@@ -1507,7 +1507,7 @@ onMounted(() => {
   left: 6px;
   width: 4px;
   height: 8px;
-  border: solid white;
+  border: solid var(--text-color);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
@@ -1517,7 +1517,7 @@ onMounted(() => {
 }
 
 .checkbox-label input:checked+.checkmark:hover {
-  background: #0056b3;
+  background: var(--primary-blue);
 }
 
 .industry-pie-chart-section {
@@ -1550,7 +1550,7 @@ onMounted(() => {
 .empty-chart {
   text-align: center;
   padding: 40px 20px;
-  color: #6c757d;
+  color: var(--secondary-gray);
   font-style: italic;
 }
 
@@ -1570,20 +1570,6 @@ onMounted(() => {
   text-align: center;
 }
 
-.gains-losses-section {
-  margin-top: 40px;
-  display: flex;
-  justify-content: center;
-  gap: 40px;
-  flex-wrap: wrap;
-}
-
-.gains-losses-section h3 {
-  margin: 0 0 30px 0;
-  color: #495057;
-  font-size: 1.3rem;
-  text-align: center;
-}
 
 .charts-section {
   display: flex;

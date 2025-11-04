@@ -246,16 +246,7 @@ const incomeChartData = computed(() => {
 
     const labels = [];
     const data = [];
-    const colors = [
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-1').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-2').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-3').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-4').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-5').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-6').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-7').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-8').trim()
-    ];
+    const incomeColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-income').trim();
 
     incomeSubtypes.forEach(subtype => {
         const subtypeTransactions = filteredTransactions.value.filter(t => t.transaction_subtype === subtype.id);
@@ -271,7 +262,7 @@ const incomeChartData = computed(() => {
         labels,
         datasets: [{
             data,
-            backgroundColor: colors.slice(0, labels.length),
+            backgroundColor: incomeColor,
             borderWidth: 1
         }]
     };
@@ -284,16 +275,7 @@ const expenseChartData = computed(() => {
 
     const labels = [];
     const data = [];
-    const colors = [
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-1').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-2').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-3').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-4').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-5').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-6').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-7').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-8').trim()
-    ];
+    const expenseColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-expense').trim();
 
     expenseSubtypes.forEach(subtype => {
         const subtypeTransactions = filteredTransactions.value.filter(t => t.transaction_subtype === subtype.id);
@@ -309,7 +291,7 @@ const expenseChartData = computed(() => {
         labels,
         datasets: [{
             data,
-            backgroundColor: colors.slice(0, labels.length),
+            backgroundColor: expenseColor,
             borderWidth: 1
         }]
     };
@@ -322,16 +304,7 @@ const savingsChartData = computed(() => {
 
     const labels = [];
     const data = [];
-    const colors = [
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-1').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-2').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-3').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-4').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-5').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-6').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-7').trim(),
-        getComputedStyle(document.documentElement).getPropertyValue('--chart-8').trim()
-    ];
+    const savingsColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-savings').trim();
 
     savingsSubtypes.forEach(subtype => {
         const subtypeTransactions = filteredTransactions.value.filter(t => t.transaction_subtype === subtype.id);
@@ -342,32 +315,18 @@ const savingsChartData = computed(() => {
             data.push(totalAmount);
         }
     });
-    console.log(labels, data);
+
     return {
         labels,
         datasets: [{
             data,
-            backgroundColor: colors.slice(0, labels.length),
+            backgroundColor: savingsColor,
             borderWidth: 1
         }]
     };
 });
 
-const chartOptions = {
-    responsive: true,
-    plugins: {
-        legend: {
-            position: 'right'
-        },
-        tooltip: {
-            callbacks: {
-                label: function (context) {
-                    return `${context.label}: €${context.parsed.toFixed(2)}`;
-                }
-            }
-        }
-    }
-};
+
 
 // Helper functions for time period grouping
 const getDayKey = (date) => {
@@ -506,14 +465,19 @@ const barChartOptions = {
     maintainAspectRatio: false,
     plugins: {
         legend: {
-            position: 'top'
+            position: 'top',
+            labels: {
+                color: getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim()
+            }
         },
         tooltip: {
             callbacks: {
                 label: function (context) {
                     return `${context.dataset.label}: €${context.parsed.y.toFixed(2)}`;
                 }
-            }
+            },
+            titleColor: getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim(),
+            bodyColor: getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim()
         }
     },
     scales: {
@@ -521,7 +485,11 @@ const barChartOptions = {
             stacked: false,
             ticks: {
                 maxRotation: 45,
-                minRotation: 45
+                minRotation: 45,
+                color: getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim()
+            },
+            grid: {
+                color: getComputedStyle(document.documentElement).getPropertyValue('--border-light').trim()
             }
         },
         y: {
@@ -530,7 +498,11 @@ const barChartOptions = {
             ticks: {
                 callback: function(value) {
                     return '€' + value.toFixed(0);
-                }
+                },
+                color: getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim()
+            },
+            grid: {
+                color: getComputedStyle(document.documentElement).getPropertyValue('--border-light').trim()
             }
         }
     }
@@ -830,40 +802,39 @@ const addTransaction = async () => {
         <div class="charts-section mb-4">
             <div class="chart-row">
                 <!-- Income Chart -->
-                <Card class="chart-card" style="background-color: var(--dark-bg)">
+                <Card class="chart-card chart-card-income">
                     <template #title>Income Breakdown</template>
                     <template #content>
                         <div class="chart-container" v-if="incomeChartData.datasets[0].data.length > 0">
-                            <Chart type="pie" :data="incomeChartData" :options="chartOptions" />
+                            <Chart type="pie" :data="incomeChartData" :options="pieChartOptions" />
                         </div>
                         <div class="no-data" v-else>
-                            <p class="text-center text-muted">No income data available</p>
+                            <p class="text-center">No income data available</p>
                         </div>
                     </template>
                 </Card>
 
                 <!-- Expense Chart -->
-                <Card class="chart-card" style="background-color: var(--dark-bg)">
+                <Card class="chart-card chart-card-expense">
                     <template #title>Expense Breakdown</template>
                     <template #content>
                         <div class="chart-container" v-if="expenseChartData.datasets[0].data.length > 0">
-                            <Chart type="pie" :data="expenseChartData" :options="chartOptions" />
+                            <Chart type="pie" :data="expenseChartData" :options="pieChartOptions" />
                         </div>
                         <div class="no-data" v-else>
-                            <p class="text-center text-muted">No expense data available</p>
+                            <p class="text-center">No expense data available</p>
                         </div>
                     </template>
                 </Card>
 
                 <!-- Savings (Investment) Chart -->
-                <Card class="chart-card" style="background-color: var(--dark-bg)">
-                    <template #title>Investment Breakdown</template>
+                <Card class="chart-card chart-card-investment">
                     <template #content>
                         <div class="chart-container" v-if="savingsChartData.datasets[0].data.length > 0">
-                            <Chart type="pie" :data="savingsChartData" :options="chartOptions" />
+                            <Chart type="pie" :data="savingsChartData" :options="pieChartOptions" />
                         </div>
                         <div class="no-data" v-else>
-                            <p class="text-center text-muted">No investment data available</p>
+                            <p class="text-center">No investment data available</p>
                         </div>
                     </template>
                 </Card>
@@ -1152,8 +1123,6 @@ export default {
     background: var(--dark-bg);
     padding: 20px;
     border-radius: 8px;
-    border: 1px solid var(--border-light);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .filter-controls {
@@ -1175,7 +1144,7 @@ export default {
 
 .filter-label {
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--text-color);
     font-size: 14px;
     margin: 0;
     text-transform: uppercase;
@@ -1222,7 +1191,7 @@ export default {
 
 .form-label {
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--text-color);
     font-size: 14px;
     margin: 0 0 4px 0;
     text-transform: uppercase;
@@ -1274,10 +1243,10 @@ export default {
     align-items: center;
     justify-content: center;
     padding: 20px;
+    color: var(--text-color);
 }
 
 .no-data p {
-    color: var(--text-color);
     font-style: italic;
     margin: 0;
 }
@@ -1298,7 +1267,7 @@ export default {
 
 .time-period-label {
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--text-color);
     font-size: 14px;
     margin: 0;
     text-transform: uppercase;
