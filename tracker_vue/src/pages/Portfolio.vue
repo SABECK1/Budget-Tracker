@@ -65,7 +65,6 @@
 
       <div class="portfolio-table">
         <div class="table-controls">
-          <h2>Your Holdings</h2>
           <div class="control-group">
             <div class="global-period-control">
               <label for="global-period-selector">All Holdings Period:</label>
@@ -345,15 +344,33 @@ const chartOptions = ref({
         title: function (tooltipItems) {
           return `Date: ${tooltipItems[0].label}`
         }
-      }
+      },
+      titleColor: getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim(),
+      bodyColor: getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim(),
+      backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--dark-bg').trim()
     }
   },
   scales: {
     x: {
-      display: true
+      display: true,
+      ticks: {
+        color: getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim()
+      },
+      grid: {
+        color: getComputedStyle(document.documentElement).getPropertyValue('--border-light').trim()
+      }
     },
     y: {
-      display: true
+      display: true,
+      ticks: {
+        color: getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim(),
+        callback: function(value) {
+          return '€' + value.toFixed(2);
+        }
+      },
+      grid: {
+        color: getComputedStyle(document.documentElement).getPropertyValue('--border-light').trim()
+      }
     }
   }
 })
@@ -402,6 +419,7 @@ const pieChartOptions = ref({
         // padding: 20,
         usePointStyle: true,
         boxWidth: 12,
+        color: getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim(), // Text color for legend labels
         font: {
           size: 12
         }
@@ -417,7 +435,9 @@ const pieChartOptions = ref({
           const percentage = ((value / total) * 100).toFixed(1)
           return `${context.label}: €${value.toFixed(2)} (${percentage}%)`
         }
-      }
+      },
+      titleColor: getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim(), // Text color for tooltip titles
+      bodyColor: getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim() // Text color for tooltip body
     }
   }
 })
@@ -1142,7 +1162,7 @@ onMounted(() => {
 
 .insight-card h3 {
   margin: 0 0 10px 0;
-  color: #fff;
+  color: var(--text-color);
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1152,7 +1172,7 @@ onMounted(() => {
   margin: 0;
   font-size: 24px;
   font-weight: bold;
-  color: #007bff;
+  color: var(--primary-blue);
 }
 
 
@@ -1172,7 +1192,7 @@ onMounted(() => {
 
 .table-controls h2 {
   margin: 0;
-  color: #495057;
+  color: var(--text-muted);
   font-size: 1.5rem;
 }
 
@@ -1181,32 +1201,32 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  background: #f8f9fa;
+  background: var(--dark-bg);
   border-radius: 8px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--border-light);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .global-period-control label {
   font-weight: 600;
-  color: #495057;
+  color: var(--text-muted);
   font-size: 14px;
   margin: 0;
 }
 
 .global-period-selector {
   padding: 8px 12px;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--border-medium);
   border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
-  background: #ffffff;
+  background: var(--white);
   min-width: 120px;
 }
 
 .global-period-selector:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--primary-blue);
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
@@ -1217,22 +1237,18 @@ onMounted(() => {
   margin-bottom: 10px;
 }
 
-.table-header h3 {
-  margin: 0;
-  color: #495057;
-}
 
 .global-filter {
   width: 250px;
   padding: 8px 12px;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--border-medium);
   border-radius: 4px;
   font-size: 14px;
 }
 
 .global-filter:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--primary-blue);
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
@@ -1243,20 +1259,20 @@ onMounted(() => {
 }
 
 :deep(.p-datatable .p-datatable-thead > tr > th) {
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
+  background-color: var(--dark-bg);
+  border-bottom: 2px solid var(--border-light);
   font-weight: 600;
-  color: #495057;
+  color: var(--text-color) !important;
   padding: 12px 16px;
 }
 
 :deep(.p-datatable .p-datatable-tbody > tr > td) {
   padding: 12px 16px;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--border-light);
 }
 
 :deep(.p-datatable .p-datatable-tbody > tr:hover) {
-  background-color: #495057;
+  background-color: var(--table-hover);
 }
 
 :deep(.p-datatable .p-datatable-tbody > tr > td.p-cell-editing) {
@@ -1274,7 +1290,7 @@ onMounted(() => {
 }
 
 :deep(.p-paginator) {
-  background-color: #f8f9fa;
+  background-color: var(--dark-bg);
   border-top: 1px solid #dee2e6;
   padding: 12px 16px;
 }
@@ -1305,29 +1321,29 @@ onMounted(() => {
 }
 
 .success-button {
-  color: #28a745;
-  border-color: #28a745;
+  color: var(--success-green);
+  border-color: var(--success-green);
 }
 
 .success-button:hover {
-  background-color: #28a745;
-  border-color: #28a745;
+  background-color: var(--success-green);
+  border-color: var(--success-green);
 }
 
 .secondary-button {
-  color: #6c757d;
-  border-color: #6c757d;
+  color: var(--secondary-gray);
+  border-color: var(--secondary-gray);
 }
 
 .secondary-button:hover {
-  background-color: #6c757d;
-  border-color: #6c757d;
+  background-color: var(--secondary-gray);
+  border-color: var(--secondary-gray);
 }
 
 .empty-state {
   text-align: center;
   padding: 40px 20px;
-  color: #6c757d;
+  color: var(--secondary-gray);
   font-style: italic;
 }
 
@@ -1344,9 +1360,9 @@ onMounted(() => {
 }
 
 .error {
-  color: #dc3545;
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
+  color: var(--danger-red);
+  background-color: var(--error-bg);
+  border: 1px solid var(--error-border);
   border-radius: 4px;
 }
 
@@ -1357,13 +1373,13 @@ onMounted(() => {
 }
 
 .symbol-missing span {
-  color: #dc3545;
+  color: var(--danger-red);
 }
 
 .enter-symbol-button {
   background: none;
   border: none;
-  color: #007bff;
+  color: var(--primary-blue);
   cursor: pointer;
   font-size: 18px;
   padding: 4px;
@@ -1371,7 +1387,7 @@ onMounted(() => {
 }
 
 .enter-symbol-button:hover {
-  background-color: #e9ecef;
+  background-color: var(--hover-bg);
 }
 
 
@@ -1383,21 +1399,21 @@ onMounted(() => {
   display: block;
   margin-bottom: 4px;
   font-weight: 600;
-  color: #495057;
+  color: var(--text-muted);
 }
 
 .today-change-card {
   margin-top: 12px;
   padding: 8px 12px;
-  background: #f8f9fa;
+  background: var(--dark-bg);
   border-radius: 6px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--border-light);
   text-align: center;
 }
 
 .change-label {
   font-size: 11px;
-  color: #6c757d;
+  color: var(--secondary-gray);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 600;
@@ -1412,20 +1428,20 @@ onMounted(() => {
 }
 
 .change-value.positive {
-  color: #28a745;
+  color: var(--success-green);
 }
 
 .change-value.negative {
-  color: #dc3545;
+  color: var(--danger-red);
 }
 
 .change-value.neutral {
-  color: #6c757d;
+  color: var(--secondary-gray);
 }
 
 .change-amount {
   font-size: 12px;
-  color: #6c757d;
+  color: var(--secondary-gray);
   margin-top: 2px;
 }
 
@@ -1438,15 +1454,16 @@ onMounted(() => {
 .period-selector {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--border-medium);
   border-radius: 4px;
   font-size: 14px;
-  background: #fff;
+  background: var(--dark-bg);
+  color: var(--text-color);
 }
 
 .period-selector:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--primary-blue);
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
@@ -1506,14 +1523,14 @@ onMounted(() => {
 .industry-pie-chart-section {
   margin-top: 40px;
   padding: 20px;
-  background: #f8f9fa;
+  background: var(--dark-bg);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .industry-pie-chart-section h2 {
   margin: 0 0 20px 0;
-  color: #495057;
+  color: var(--text-color);
   font-size: 1.5rem;
   text-align: center;
 }
@@ -1546,10 +1563,11 @@ onMounted(() => {
   margin-bottom: 30px;
 }
 
-.chart-subsection h4 {
+.chart-subsection h3 {
   margin: 0 0 15px 0;
-  color: #495057;
+  color: var(--text-color);
   font-size: 1.1rem;
+  text-align: center;
 }
 
 .gains-losses-section {
