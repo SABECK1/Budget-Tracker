@@ -224,7 +224,6 @@
         </template>
       </Dialog> -->
     </div>
-    <Toast />
   </div>
   </ProtectedLayout>
 </template>
@@ -241,7 +240,6 @@ import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
 import { FilterMatchMode } from '@primevue/core/api'
 import Chart from 'primevue/chart'
-import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 import ProtectedLayout from '@/components/ProtectedLayout.vue'
 

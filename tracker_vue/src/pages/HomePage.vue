@@ -2,7 +2,6 @@
 import ProtectedLayout from '@/components/ProtectedLayout.vue';
 import TransactionDashboard from '../components/TransactionDashboard.vue';
 import AppNavigation from '@/components/navigation.vue'
-
 </script>
 
 <template>

@@ -4,7 +4,6 @@
   <div class="accounts-page">
     <h1>Bank Accounts</h1>
     <div v-if="loading" class="loading">Loading accounts...</div>
-    <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else>
       <div class="accounts-widget">
         <div class="widget-header">
@@ -96,8 +95,6 @@
         <Button label="Delete" icon="pi pi-check" class="p-button-danger" @click="deleteAccount" />
       </template>
     </Dialog>
-
-    <Toast />
   </div>
   </ProtectedLayout>
 </template>
@@ -113,9 +110,9 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
 import Dialog from 'primevue/dialog'
-import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 import ProtectedLayout from '@/components/ProtectedLayout.vue'
+import { useAuthStore } from '@/store/auth'
 
 const toast = useToast()
 
@@ -303,7 +300,12 @@ const closeDialog = () => {
 }
 
 onMounted(() => {
-  fetchAccounts()
+  const authStore = useAuthStore();
+  
+  // Only fetch if the store says we are actually logged in
+  if (authStore.isAuthenticated) {
+    fetchAccounts();
+  }
 })
 </script>
 

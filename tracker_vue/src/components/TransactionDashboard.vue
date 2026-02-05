@@ -9,7 +9,6 @@ import InputNumber from "primevue/inputnumber";
 import Dropdown from "primevue/dropdown";
 import Button from "primevue/button";
 import Calendar from "primevue/calendar";
-import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
 import Chart from 'primevue/chart'
 import CSVUpload from './CSVUpload.vue';
@@ -1076,7 +1075,6 @@ const addTransaction = async () => {
                 </div>
             </template>
         </Card>
-        <Toast />
     </div>
 </template>
 
