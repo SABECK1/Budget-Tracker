@@ -10,7 +10,10 @@ import { definePreset } from '@primeuix/themes';
 import 'primeicons/primeicons.css';
 import { ToastService } from 'primevue';
 
- 
+const pinia = createPinia()
+
+const app = createApp(App);
+
 const stylePreset = definePreset(Aura, {
     semantic: {
         primary: {
@@ -47,7 +50,6 @@ const stylePreset = definePreset(Aura, {
     }
 });
 
-const app = createApp(App);
 app.use(PrimeVue, {
     theme: {
         preset: stylePreset,
@@ -57,22 +59,11 @@ app.use(PrimeVue, {
     }
 });
 
-app.use(createPinia())
+app.use(pinia)
 app.use(ToastService)
 app.use(router)
-// app.use(PrimeVue, {
-//     theme: {
-//         preset: Aura,
-//         options: {
-//             prefix: 'p',
-//             darkModeSelector: 'system',
-//             cssLayer: false
-//         },
-//     }
-// })
 
-
-const authStore = useAuthStore()
+const authStore = useAuthStore(pinia)
 authStore.setCsrfToken()
- 
+
 app.mount('#app')

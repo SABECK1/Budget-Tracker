@@ -1,5 +1,6 @@
 <template>
   <AppNavigation />
+  <ProtectedLayout>
   <div class="portfolio-page">
     <h1>Stock Portfolio</h1>
     <div v-if="loading" class="loading">Loading portfolio...</div>
@@ -225,6 +226,7 @@
     </div>
     <Toast />
   </div>
+  </ProtectedLayout>
 </template>
 
 <script setup>
@@ -241,6 +243,7 @@ import { FilterMatchMode } from '@primevue/core/api'
 import Chart from 'primevue/chart'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
+import ProtectedLayout from '@/components/ProtectedLayout.vue'
 
 const toast = useToast()
 

@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from './pages/Home.vue'
+import Home from './pages/HomePage.vue'
 import Login from './pages/Login.vue'
 import Register from './pages/Register.vue'
 import Portfolio from './pages/Portfolio.vue'
@@ -32,10 +32,10 @@ const routes = [
     component: Accounts,
   },
 ]
- 
+
 const router = createRouter({
   history: createWebHistory(),
   routes,
 })
- 
+
 export default router
