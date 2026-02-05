@@ -79,7 +79,7 @@ export default {
   methods: {
     async register() {
       try {
-        const response = await fetch(`${process.env.VUE_APP_API_BASE_URL}/register`, {
+        const response = await fetch(`http://localhost:8000/api/register`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

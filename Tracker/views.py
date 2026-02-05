@@ -2,7 +2,12 @@
 from django.contrib.auth.models import Group, User
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
-from Tracker.models import TransactionType, TransactionSubType, UserProvidedSymbol, BankAccount
+from Tracker.models import (
+    TransactionType,
+    TransactionSubType,
+    UserProvidedSymbol,
+    BankAccount,
+)
 from .serializers import (
     GroupSerializer,
     UserSerializer,
@@ -31,7 +36,6 @@ from django.db import models
 from django.db.models import Sum, F, Case, When
 from .stocks import get_history, fetch_multiple_prices, get_symbol_and_industry
 import asyncio
-
 
 
 class CSVUploadView(APIView):
@@ -84,13 +88,19 @@ class CSVUploadView(APIView):
             )
 
         # Process CSV based on account type
-        if bank_account.account_type == 'trade_republic':
-            created_count = self.process_trade_republic_csv(request.user, csv_file, bank_account)
-        elif bank_account.account_type == 'volksbank':
-            created_count = self.process_volksbank_csv(request.user, csv_file, bank_account)
+        if bank_account.account_type == "trade_republic":
+            created_count = self.process_trade_republic_csv(
+                request.user, csv_file, bank_account
+            )
+        elif bank_account.account_type == "volksbank":
+            created_count = self.process_volksbank_csv(
+                request.user, csv_file, bank_account
+            )
         else:
             # Default processing for accounts without specific type
-            created_count = self.process_default_csv(request.user, csv_file, bank_account)
+            created_count = self.process_default_csv(
+                request.user, csv_file, bank_account
+            )
 
         return Response(
             {"status": f"Imported {created_count} rows"}, status=status.HTTP_201_CREATED
@@ -420,7 +430,7 @@ def portfolio_view(request):
         price_data = asyncio.run(fetch_multiple_prices(isins, max_concurrent=5))
     except Exception as e:
         print(f"Error in concurrent fetching: {e}")
-        
+
         # Fallback to synchronous fetching
         price_data = {}
         for isin in isins:
@@ -429,25 +439,25 @@ def portfolio_view(request):
                 if intraday_data and len(intraday_data) > 0:
                     current_price = float(intraday_data[-1][1])
                     price_data[isin] = {
-                        'isin': isin,
-                        'name': name,
-                        'current_price': current_price,
-                        'success': True
+                        "isin": isin,
+                        "name": name,
+                        "current_price": current_price,
+                        "success": True,
                     }
                 else:
                     price_data[isin] = {
-                        'isin': isin,
-                        'name': f"Unknown ({isin})",
-                        'current_price': None,
-                        'success': False
+                        "isin": isin,
+                        "name": f"Unknown ({isin})",
+                        "current_price": None,
+                        "success": False,
                     }
             except Exception as e2:
                 print(f"Error fetching price for {isin}: {e2}")
                 price_data[isin] = {
-                    'isin': isin,
-                    'name': f"Error ({isin})",
-                    'current_price': None,
-                    'success': False
+                    "isin": isin,
+                    "name": f"Error ({isin})",
+                    "current_price": None,
+                    "success": False,
                 }
 
     # Format the response using the fetched price data
@@ -466,14 +476,14 @@ def portfolio_view(request):
 
         # Get price data from concurrent fetch
         price_info = price_data.get(isin)
-        if price_info and price_info['success'] and price_info['current_price']:
-            current_price = price_info['current_price']
-            name = price_info['name']
-            intraday_data = price_info.get('intraday_data', [])
-            preday = price_info.get('preday', [])
-            history = price_info.get('history_data', [])
-            industry = price_info.get('industry', 'Unknown')
-            sector = price_info.get('sector', 'Unknown')
+        if price_info and price_info["success"] and price_info["current_price"]:
+            current_price = price_info["current_price"]
+            name = price_info["name"]
+            intraday_data = price_info.get("intraday_data", [])
+            preday = price_info.get("preday", [])
+            history = price_info.get("history_data", [])
+            industry = price_info.get("industry", "Unknown")
+            sector = price_info.get("sector", "Unknown")
         else:
             # Fallback to avg_price if concurrent fetch failed
             current_price = avg_price
@@ -483,26 +493,36 @@ def portfolio_view(request):
             history = []
             # Try to get industry even in fallback
             symbol_info = get_symbol_and_industry(isin)
-            industry = symbol_info.get('industry', 'Unknown')
-            sector = symbol_info.get('sector', 'Unknown')
+            industry = symbol_info.get("industry", "Unknown")
+            sector = symbol_info.get("sector", "Unknown")
 
         # Get transaction data for this holding to show on chart
-        transactions = Transaction.objects.filter(user=request.user, isin=isin).order_by('created_at')
+        transactions = Transaction.objects.filter(
+            user=request.user, isin=isin
+        ).order_by("created_at")
         transaction_points = []
         for transaction in transactions:
-            if transaction.quantity and transaction.amount and transaction.quantity != 0:
+            if (
+                transaction.quantity
+                and transaction.amount
+                and transaction.quantity != 0
+            ):
                 # Calculate transaction price
-                transaction_price = abs(float(transaction.amount) / float(transaction.quantity))
+                transaction_price = abs(
+                    float(transaction.amount) / float(transaction.quantity)
+                )
 
                 # Convert to unix timestamp
                 transaction_timestamp = int(transaction.created_at.timestamp() * 1000)
 
-                transaction_points.append({
-                    'timestamp': transaction_timestamp,
-                    'price': transaction_price,
-                    'type': transaction.transaction_subtype.name,
-                    'quantity': float(transaction.quantity)
-                })
+                transaction_points.append(
+                    {
+                        "timestamp": transaction_timestamp,
+                        "price": transaction_price,
+                        "type": transaction.transaction_subtype.name,
+                        "quantity": float(transaction.quantity),
+                    }
+                )
 
         value = float(net_quantity) * current_price
         total_value += value
@@ -521,7 +541,7 @@ def portfolio_view(request):
                 "history": history,
                 "transactions": transaction_points,
                 "industry": industry,
-                "sector": sector
+                "sector": sector,
             }
         )
 
@@ -686,14 +706,18 @@ def adjust_holding_view(request):
         # Determine transaction type
         if shares_difference > 0:
             # Buy additional shares
-            transaction_subtype = TransactionSubType.objects.get(name="Stock/ETF/Bond Purchase")
+            transaction_subtype = TransactionSubType.objects.get(
+                name="Stock/ETF/Bond Purchase"
+            )
             amount = -(
                 abs(shares_difference) * current_price
             )  # Negative for money going out
             quantity = abs(shares_difference)
         else:
             # Sell shares
-            transaction_subtype = TransactionSubType.objects.get(name="Investment Returns")
+            transaction_subtype = TransactionSubType.objects.get(
+                name="Investment Returns"
+            )
             amount = (
                 abs(shares_difference) * current_price
             )  # Positive for money coming in
@@ -725,6 +749,7 @@ def adjust_holding_view(request):
 
 @require_http_methods(["POST"])
 def register(request):
+    return JsonResponse({"error": "test"}, status=400)
     data = json.loads(request.body.decode("utf-8"))
     form = CreateUserForm(data)
     if form.is_valid():

@@ -1,10 +1,21 @@
 <script setup>
+import { onMounted } from 'vue';
+import { RouterView } from 'vue-router';
 import Toast from 'primevue/toast';
- </script>
 
- <template>
-  <RouterView>
+onMounted(async () => {
+  try {
+    await fetch(`${import.meta.env.VUE_APP_API_BASE_URL}/api/set-csrf-token`, {
+      credentials: "include"
+    });
+    console.log("CSRF cookie initialized");
+  } catch (err) {
+    console.error("Failed to initialize CSRF cookie:", err);
+  }
+});
+</script>
 
-  </RouterView>
+<template>
+  <RouterView />
   <Toast />
 </template>

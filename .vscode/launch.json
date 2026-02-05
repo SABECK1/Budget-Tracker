@@ -12,6 +12,7 @@
             ],
             "django": true,
             "justMyCode": true,
+            "subProcess": true,
             "env": {
                 "DJANGO_SETTINGS_MODULE": "Budget_Tracker.settings"
             },
