@@ -5,7 +5,7 @@ import Toast from 'primevue/toast';
 
 onMounted(async () => {
   try {
-    await fetch(`${import.meta.env.VUE_APP_API_BASE_URL}/api/set-csrf-token`, {
+    await fetch(`${process.env.VUE_APP_API_BASE_URL}/set-csrf-token`, {
       credentials: "include"
     });
     console.log("CSRF cookie initialized");

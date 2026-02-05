@@ -749,7 +749,6 @@ def adjust_holding_view(request):
 
 @require_http_methods(["POST"])
 def register(request):
-    return JsonResponse({"error": "test"}, status=400)
     data = json.loads(request.body.decode("utf-8"))
     form = CreateUserForm(data)
     if form.is_valid():
