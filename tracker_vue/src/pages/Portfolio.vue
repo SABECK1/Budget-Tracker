@@ -1,5 +1,5 @@
 <template>
-  <AppNavigation />
+  <AppNavigation/>
   <ProtectedLayout>
   <div class="portfolio-page">
     <h1>Stock Portfolio</h1>

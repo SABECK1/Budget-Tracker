@@ -1,5 +1,6 @@
 <template>
   <AppNavigation />
+  <ProtectedLayout>
   <div class="accounts-page">
     <h1>Bank Accounts</h1>
     <div v-if="loading" class="loading">Loading accounts...</div>
@@ -98,6 +99,7 @@
 
     <Toast />
   </div>
+  </ProtectedLayout>
 </template>
 
 <script setup>
@@ -113,6 +115,7 @@ import Dropdown from 'primevue/dropdown'
 import Dialog from 'primevue/dialog'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
+import ProtectedLayout from '@/components/ProtectedLayout.vue'
 
 const toast = useToast()
 

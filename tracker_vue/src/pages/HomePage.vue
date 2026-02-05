@@ -1,9 +1,12 @@
 <script	setup>
 import ProtectedLayout from '@/components/ProtectedLayout.vue';
 import TransactionDashboard from '../components/TransactionDashboard.vue';
+import AppNavigation from '@/components/navigation.vue'
+
 </script>
 
 <template>
+    <AppNavigation/>
     <ProtectedLayout>
     <div class="container mx-auto px-4">
         <h2 class="text-center my-4">Welcome to your Dashboard</h2>
