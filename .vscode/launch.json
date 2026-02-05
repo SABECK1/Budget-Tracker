@@ -1,0 +1,46 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Django",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "args": [
+                "runserver",
+                "--noreload"
+            ],
+            "django": true,
+            "justMyCode": true,
+            "env": {
+                "DJANGO_SETTINGS_MODULE": "Budget_Tracker.settings"
+            },
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Vue: Firefox",
+            "type": "firefox",
+            "request": "launch",
+            "reAttach": true,
+            "url": "http://localhost:8080",
+            "webRoot": "${workspaceFolder}/tracker_vue/src",
+            "preLaunchTask": "Start Vue Server",
+            "pathMappings": [
+                {
+                    "url": "webpack:///src",
+                    "path": "${workspaceFolder}/tracker_vue/src"
+                }
+            ]
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Full Stack (Firefox)",
+            "configurations": [
+                "Python: Django",
+                "Vue: Firefox"
+            ]
+        }
+    ]
+}
