@@ -32,6 +32,7 @@
             :class="{ 'p-invalid': passwordError }"
             @input="resetError"
             toggleMask
+            :feedback="false"
           />
           <small v-if="passwordError" class="p-error">{{ passwordError }}</small>
         </div>
