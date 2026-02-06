@@ -699,8 +699,8 @@ const refreshData = async () => {
 
 // Add transaction function
 const addTransaction = async () => {
-    if (!addForm.value.transaction_subtype || !addForm.value.amount) {
-        toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Transaction Type and Amount are required.', life: 5000 });
+    if (!addForm.value.transaction_subtype || !addForm.value.amount || !addForm.value.bank_account) {
+        toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Transaction Type, Amount and Account are required.', life: 5000 });
         return;
     }
 
@@ -1035,10 +1035,10 @@ const addTransaction = async () => {
                             placeholder="Select transaction type" class="w-full" />
                     </div>
                     <div class="field">
-                        <label for="add-bank_account" class="form-label">Account</label>
+                        <label for="add-bank_account" class="form-label">Account *</label>
                         <Dropdown id="add-bank_account" v-model="addForm.bank_account"
                             :options="bankAccounts" option-label="name" option-value="id"
-                            placeholder="Select account (optional)" show-clear class="w-full" />
+                            placeholder="Select account" show-clear class="w-full" />
                     </div>
                     <div class="field">
                         <label for="add-amount" class="form-label">Amount *</label>

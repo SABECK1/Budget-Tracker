@@ -68,9 +68,11 @@ class TransactionSerializer(serializers.HyperlinkedModelSerializer):
         queryset=models.TransactionSubType.objects.all()
     )
     bank_account = serializers.PrimaryKeyRelatedField(
-        queryset=models.BankAccount.objects.all(), allow_null=True, required=False
+        queryset=models.BankAccount.objects.all(), allow_null=True, required=True
     )
-    bank_account_name = serializers.CharField(source="bank_account.name", read_only=True)
+    bank_account_name = serializers.CharField(
+        source="bank_account.name", read_only=True
+    )
 
     class Meta:
         model = models.Transaction
