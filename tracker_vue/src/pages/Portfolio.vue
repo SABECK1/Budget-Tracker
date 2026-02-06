@@ -66,21 +66,19 @@
 
       <div class="portfolio-table">
         <div class="table-controls">
-          <div class="control-group">
-            <div class="global-period-control">
-              <label for="global-period-selector">All Holdings Period:</label>
-              <select id="global-period-selector" v-model="globalPeriod" @change="updateAllHoldingsPeriod"
-                class="global-period-selector">
-                <option value="intraday">Intraday</option>
-                <option value="1w">1 Week</option>
-                <option value="1m">1 Month</option>
-                <option value="3m">3 Months</option>
-                <option value="6m">6 Months</option>
-                <option value="1y">1 Year</option>
-                <option value="5y">5 Years</option>
-                <option value="all">All Time</option>
-              </select>
-            </div>
+          <div class="global-period-control">
+            <label for="global-period-selector">All Holdings Period:</label>
+            <select id="global-period-selector" v-model="globalPeriod" @change="updateAllHoldingsPeriod"
+              class="global-period-selector">
+              <option value="intraday">Intraday</option>
+              <option value="1w">1 Week</option>
+              <option value="1m">1 Month</option>
+              <option value="3m">3 Months</option>
+              <option value="6m">6 Months</option>
+              <option value="1y">1 Year</option>
+              <option value="5y">5 Years</option>
+              <option value="all">All Time</option>
+            </select>
             <div class="hide-unknown-control">
               <label class="checkbox-label">
                 <input id="hide-unknown-checkbox" type="checkbox" v-model="hideUnknownHoldings" />
@@ -1201,6 +1199,9 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
+  justify-content: center;
+  width: 30vw;
+  margin-inline: auto;
   padding: 12px 16px;
   background: var(--dark-bg);
   border-radius: 8px;
@@ -1221,7 +1222,6 @@ onMounted(() => {
   border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
-  background: var(--white);
   min-width: 120px;
 }
 
