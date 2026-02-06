@@ -7,8 +7,10 @@
 
     /* Additional uniform colors */
     --dark-bg: #333;
+    --true-black: #000000;
+    --soothing-gradient: linear-gradient(135deg, #1e2761 0%, #408ec6 30%, #7a2048 100%);
     --light-bg: #f8f9fa;
-    --text-muted: #495057;
+    --text-muted: #bbbfc7;
     --border-light: #dee2e6;
     --border-medium: #ced4da;
     --border-dark: #666;
