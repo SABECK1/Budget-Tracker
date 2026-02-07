@@ -857,7 +857,7 @@ const addTransaction = async () => {
                     <Chart type="bar" :data="monthlyOverviewChartData" :options="barChartOptions" style="height: 100%; width: 100%;" />
                 </div>
                 <div class="no-data" v-else>
-                    <p class="text-center text-muted">No transaction data available for {{ chartTimePeriod }} overview</p>
+                    <p class="text-center">No transaction data available for {{ chartTimePeriod }} overview</p>
                 </div>
             </template>
         </Card>
@@ -1241,7 +1241,7 @@ export default {
     align-items: center;
     justify-content: center;
     padding: 20px;
-    color: var(--text-color);
+    color: var(--secondary-gray);
 }
 
 .no-data p {

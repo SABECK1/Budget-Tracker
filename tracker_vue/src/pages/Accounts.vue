@@ -70,7 +70,7 @@
           <small v-if="formErrors.bic" class="p-error">{{ formErrors.bic }}</small>
         </div>
         <div class="p-field">
-          <label for="account_type">Account Type</label>
+          <label for="account_type">Account Type (only necessary for CSV-Upload)</label>
           <Dropdown id="account_type" v-model="accountForm.account_type" :options="accountTypeOptions" optionLabel="label" optionValue="value" placeholder="Select account type" :class="{ 'p-invalid': formErrors.account_type }" />
           <small v-if="formErrors.account_type" class="p-error">{{ formErrors.account_type }}</small>
         </div>
@@ -113,6 +113,7 @@ import Dialog from 'primevue/dialog'
 import { useToast } from 'primevue/usetoast'
 import ProtectedLayout from '@/components/ProtectedLayout.vue'
 import { useAuthStore } from '@/store/auth'
+import '../assets/css/main.css'
 
 const toast = useToast()
 
@@ -315,7 +316,8 @@ onMounted(() => {
 }
 
 .accounts-widget {
-  background: #f8f9fa;
+  background: var(--dark-bg);
+  color: var(--text-color);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -330,7 +332,6 @@ onMounted(() => {
 
 .widget-header h2 {
   margin: 0;
-  color: #495057;
 }
 
 .accounts-table {
@@ -396,6 +397,6 @@ onMounted(() => {
   display: block;
   margin-bottom: 4px;
   font-weight: 600;
-  color: #495057;
+  color: var(--text-color)
 }
 </style>
