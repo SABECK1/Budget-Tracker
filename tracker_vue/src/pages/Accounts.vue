@@ -341,25 +341,23 @@ onMounted(() => {
 }
 
 :deep(.p-datatable .p-datatable-thead > tr > th) {
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
+  /* background-color: var(--true-black); */
+  /* border-bottom: 2px solid #dee2e6; */
   font-weight: 600;
-  color: #495057;
+  color: (--text-color);
   padding: 12px 16px;
 }
 
 :deep(.p-datatable .p-datatable-tbody > tr > td) {
   padding: 12px 16px;
-  border-bottom: 1px solid #dee2e6;
+  /* border-bottom: 1px solid #dee2e6; */
 }
 
 :deep(.p-datatable .p-datatable-tbody > tr:hover) {
-  background-color: #f8f9fa;
+  background-color: var(--body-bg);
 }
 
 :deep(.p-paginator) {
-  background-color: #f8f9fa;
-  border-top: 1px solid #dee2e6;
   padding: 12px 16px;
 }
 
