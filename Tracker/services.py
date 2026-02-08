@@ -5,7 +5,17 @@ from .models import JournalEntry, Transaction, TransactionType, TransactionSubTy
 class LedgerService:
     @staticmethod
     @transaction.atomic
-    def create_transfer_transaction(user, from_account, to_account, amount, note=""):
+    def create_transfer_transaction(
+        user,
+        from_account,
+        to_account,
+        amount,
+        note="",
+        isin="",
+        quantity=None,
+        fee=None,
+        tax=None,
+    ):
         """
         Create a transfer transaction using double-entry bookkeeping.
         This creates two transactions: one negative (debit) and one positive (credit).
@@ -16,6 +26,10 @@ class LedgerService:
             to_account: Destination bank account (will be credited)
             amount: Positive amount to transfer
             note: Optional note for the transaction
+            isin: Optional ISIN for the transfer
+            quantity: Optional quantity for the transfer
+            fee: Optional fee for the transfer
+            tax: Optional tax for the transfer
 
         Returns:
             JournalEntry: The created journal entry containing both transactions
@@ -57,6 +71,10 @@ class LedgerService:
             bank_account=from_account,
             amount=-amount,
             note=note,
+            isin=isin,
+            quantity=quantity,
+            fee=fee,
+            tax=tax,
             transaction_subtype=transfer_subtype,
         )
 
@@ -67,6 +85,10 @@ class LedgerService:
             bank_account=to_account,
             amount=amount,
             note=note,
+            isin=isin,
+            quantity=quantity,
+            fee=fee,
+            tax=tax,
             transaction_subtype=transfer_subtype,
         )
 

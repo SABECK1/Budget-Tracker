@@ -753,3 +753,93 @@ def register(request):
     else:
         errors = form.errors.as_json()
         return JsonResponse({"error": errors}, status=400)
+
+
+@require_http_methods(["POST"])
+@ensure_csrf_cookie
+def create_transfer_transaction(request):
+    """
+    Create a transfer transaction using the LedgerService.
+    This endpoint handles the double-entry bookkeeping for transfers.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+        from_account_id = data.get("from_account")
+        amount = float(data.get("amount", 0))
+        note = data.get("note", "Manual transfer")
+
+        if not from_account_id or amount <= 0:
+            return JsonResponse(
+                {"error": "Valid from_account and positive amount are required"},
+                status=400,
+            )
+
+        # Get the source account
+        try:
+            from_account = BankAccount.objects.get(
+                id=from_account_id, user=request.user
+            )
+        except BankAccount.DoesNotExist:
+            return JsonResponse(
+                {"error": "Source account not found or does not belong to user"},
+                status=400,
+            )
+
+        # Get the destination account
+        to_account_id = data.get("to_account")
+
+        if not to_account_id:
+            return JsonResponse(
+                {"error": "Destination account is required for transfers"},
+                status=400,
+            )
+
+        try:
+            to_account = BankAccount.objects.get(id=to_account_id, user=request.user)
+        except BankAccount.DoesNotExist:
+            return JsonResponse(
+                {"error": "Destination account not found or does not belong to user"},
+                status=400,
+            )
+
+        # Ensure source and destination accounts are different
+        if from_account_id == to_account_id:
+            return JsonResponse(
+                {"error": "Source and destination accounts must be different"},
+                status=400,
+            )
+
+        # Create the transfer using LedgerService
+        journal = LedgerService.create_transfer_transaction(
+            user=request.user,
+            from_account=from_account,
+            to_account=to_account,
+            amount=amount,
+            note=note,
+            isin=data.get("isin", ""),
+            quantity=data.get("quantity"),
+            fee=data.get("fee"),
+            tax=data.get("tax"),
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Transfer transaction created successfully",
+                "journal_id": journal.id,
+                "description": journal.description,
+            },
+            status=201,
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=500)

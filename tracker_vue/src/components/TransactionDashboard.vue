@@ -77,6 +77,14 @@ const addForm = ref({
     tax: ''
 });
 
+// Transfer-specific state
+const transferForm = ref({
+    from_account: null,
+    to_account: null,
+    amount: '',
+    note: ''
+});
+
 // Fetch data on mount
 onMounted(async () => {
     try {
@@ -705,34 +713,115 @@ const addTransaction = async () => {
     }
 
     try {
-        await axios.post(`${baseurl}/transactions/`, addForm.value, {
-            headers: {
-                'X-CSRFToken': Cookies.get('csrftoken'),
-            },
-            withCredentials: true,
-        });
-
-        // Clear form
-        addForm.value = {
-            transaction_subtype: null,
-            bank_account: null,
-            amount: '',
-            note: '',
-            isin: '',
-            quantity: '',
-            fee: '',
-            tax: ''
-        };
-
-        // Refresh data
-        await loadTransactionCounts();
-        expandedData.value.clear();
-
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Transaction added successfully.', life: 3000 });
+        // Check if this is a transfer transaction
+        const isTransfer = isTransferTransaction(addForm.value.transaction_subtype);
+        
+        if (isTransfer) {
+            // Handle transfer transaction using LedgerService
+            await handleTransferTransaction();
+        } else {
+            // Handle regular transaction
+            await handleRegularTransaction();
+        }
     } catch (err) {
         console.error("Error adding transaction:", err.toJSON());
         toast.add({ severity: 'error', summary: 'Error adding transaction. Please try again.', life: 5000 });
     }
+};
+
+// Helper function to check if transaction is a transfer
+const isTransferTransaction = (subtypeId) => {
+    const subtype = transactionSubtypes.value.find(st => st.id === subtypeId);
+    return subtype && subtype.transaction_type_name === 'Transfer';
+};
+
+// Handle regular transaction creation
+const handleRegularTransaction = async () => {
+    await axios.post(`${baseurl}/transactions/`, addForm.value, {
+        headers: {
+            'X-CSRFToken': Cookies.get('csrftoken'),
+        },
+        withCredentials: true,
+    });
+
+    // Clear form
+    addForm.value = {
+        transaction_subtype: null,
+        bank_account: null,
+        amount: '',
+        note: '',
+        isin: '',
+        quantity: '',
+        fee: '',
+        tax: ''
+    };
+
+    // Refresh data
+    await loadTransactionCounts();
+    expandedData.value.clear();
+
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Transaction added successfully.', life: 3000 });
+};
+
+// Handle transfer transaction creation
+const handleTransferTransaction = async () => {
+    // For transfers, we need additional validation and data
+    if (!addForm.value.amount || !addForm.value.bank_account || !transferForm.value.to_account) {
+        toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Amount, Source Account, and Destination Account are required for transfers.', life: 5000 });
+        return;
+    }
+
+    if (addForm.value.amount <= 0) {
+        toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Transfer amount must be positive.', life: 5000 });
+        return;
+    }
+
+    if (addForm.value.bank_account === transferForm.value.to_account) {
+        toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Source and destination accounts must be different.', life: 5000 });
+        return;
+    }
+
+    const fromAccount = addForm.value.bank_account;
+    const toAccount = transferForm.value.to_account;
+    const amount = Math.abs(parseFloat(addForm.value.amount));
+    const note = addForm.value.note || 'Manual transfer';
+
+    // Create transfer using the LedgerService endpoint
+    await axios.post(`${baseurl}/transfer/`, {
+        from_account: fromAccount,
+        to_account: toAccount,
+        amount: amount,
+        note: note,
+    }, {
+        headers: {
+            'X-CSRFToken': Cookies.get('csrftoken'),
+        },
+        withCredentials: true,
+    });
+
+    // Clear forms
+    addForm.value = {
+        transaction_subtype: null,
+        bank_account: null,
+        amount: '',
+        note: '',
+        isin: '',
+        quantity: '',
+        fee: '',
+        tax: ''
+    };
+    transferForm.value = {
+        from_account: null,
+        to_account: null,
+        amount: '',
+        note: ''
+    };
+
+    // Refresh data
+    await loadTransactionCounts();
+    expandedData.value.clear();
+
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Transfer transaction added successfully.', life: 3000 });
 };
 </script>
 
@@ -1027,7 +1116,8 @@ const addTransaction = async () => {
         <Card class="mb-4" style="background-color: var(--dark-bg)">
             <template #title>Add Transaction Manually</template>
             <template #content>
-                <div class="p-fluid form-grid">
+                <!-- Regular Transaction Form -->
+                <div v-if="!isTransferTransaction(addForm.transaction_subtype)" class="p-fluid form-grid">
                     <div class="field">
                         <label for="add-transaction_subtype" class="form-label">Transaction Type *</label>
                         <Dropdown id="add-transaction_subtype" v-model="addForm.transaction_subtype"
@@ -1071,6 +1161,42 @@ const addTransaction = async () => {
                     <div class="field col-span-full">
                         <Button label="Add Transaction" icon="pi pi-plus" @click="addTransaction"
                             class="p-button-success" />
+                    </div>
+                </div>
+
+                <!-- Transfer Transaction Form -->
+                <div v-else class="p-fluid form-grid">
+                    <div class="field">
+                        <label for="add-transaction_subtype" class="form-label">Transaction Type *</label>
+                        <Dropdown id="add-transaction_subtype" v-model="addForm.transaction_subtype"
+                            :options="transactionSubtypes" option-label="name" option-value="id"
+                            placeholder="Select transaction type" class="w-full" />
+                    </div>
+                    <div class="field">
+                        <label for="transfer-from-account" class="form-label">From Account *</label>
+                        <Dropdown id="transfer-from-account" v-model="addForm.bank_account"
+                            :options="bankAccounts" option-label="name" option-value="id"
+                            placeholder="Select source account" show-clear class="w-full" />
+                    </div>
+                    <div class="field">
+                        <label for="transfer-to-account" class="form-label">To Account *</label>
+                        <Dropdown id="transfer-to-account" v-model="transferForm.to_account"
+                            :options="bankAccounts.filter(acc => acc.id !== addForm.bank_account)"
+                            option-label="name" option-value="id"
+                            placeholder="Select destination account" show-clear class="w-full" />
+                    </div>
+                    <div class="field">
+                        <label for="transfer-amount" class="form-label">Amount *</label>
+                        <InputNumber id="transfer-amount" v-model="addForm.amount" mode="decimal" :minFractionDigits="2"
+                            class="w-full" />
+                    </div>
+                    <div class="field">
+                        <label for="transfer-note" class="form-label">Note</label>
+                        <InputText id="transfer-note" v-model="addForm.note" placeholder="Optional note" class="w-full" />
+                    </div>
+                    <div class="field col-span-full">
+                        <Button label="Create Transfer" icon="pi pi-exchange" @click="addTransaction"
+                            class="p-button-info" />
                     </div>
                 </div>
             </template>
