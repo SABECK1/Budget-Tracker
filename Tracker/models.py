@@ -2,6 +2,8 @@ from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.db.models.functions import Coalesce
+from django.db.models import Sum
 
 
 class TransactionType(models.Model):
@@ -54,13 +56,22 @@ class JournalEntry(models.Model):
         return f"{self.description} ({self.created_at.date()})"
 
 
-# class UserProfile(models.Model):
-#     user = models.OneToOneField(User, on_delete=models.CASCADE)
-#     phone_number = models.CharField(max_length=20, blank=True)
-#     pin = models.CharField(max_length=10, blank=True)
+class BankAccountQuerySet(models.QuerySet):
+    def with_balance(self):
+        """Annotates each account with its current balance."""
+        return self.annotate(
+            balance=Coalesce(
+                Sum("ledger_entries__amount"), 0, output_field=models.DecimalField()
+            )
+        )
 
-#     def __str__(self):
-#         return f"{self.user.username}'s profile"
+
+class BankAccountManager(models.Manager):
+    def get_queryset(self):
+        return BankAccountQuerySet(self.model, using=self._db)
+
+    def get_balance(self, account_id):
+        return self.get_queryset().with_balance().get(id=account_id).balance
 
 
 class BankAccount(models.Model):
@@ -88,6 +99,8 @@ class BankAccount(models.Model):
         blank=True,
         help_text="Type of bank account for CSV processing",
     )
+
+    objects = BankAccountManager()
 
     def __str__(self):
         return f"{self.user} - {self.name}"
@@ -143,35 +156,3 @@ class UserProvidedSymbol(models.Model):
 
     def __str__(self):
         return f"{self.user} provided {self.symbol} for {self.isin}"
-
-
-class TransferService:
-    @staticmethod
-    def execute_transfer(user, from_account, to_account, amount, note=""):
-        if amount <= 0:
-            raise ValueError("Transfer amount must be positive.")
-
-        # Ensure the whole block succeeds or fails together
-        with transaction.atomic():
-            # 1. Create the parent record
-            journal = JournalEntry.objects.create(
-                user=user,
-                description=f"Transfer from {from_account.name} to {to_account.name}",
-            )
-
-            # 2. The Outbound Line (Negative)
-            Transaction.objects.create(
-                journal_entry=journal,
-                bank_account=from_account,
-                amount=-amount,
-                note=note,
-            )
-
-            # 3. The Inbound Line (Positive)
-            Transaction.objects.create(
-                journal_entry=journal, bank_account=to_account, amount=amount, note=note
-            )
-
-            # Optional: Add a fee here if needed in the future
-
-        return journal
