@@ -119,7 +119,7 @@ class Transaction(models.Model):
     bank_account = models.ForeignKey(
         BankAccount,
         on_delete=models.PROTECT,
-        null=False,
+        null=True,
         blank=False,
         related_name="outgoing_transactions",
     )
@@ -141,6 +141,17 @@ class Transaction(models.Model):
         null=True,
         blank=True,
     )
+
+    def save(self, *args, **kwargs):
+        if not self.bank_account:
+            # Find the first account belonging to THIS user
+            default_account = BankAccount.objects.filter(user=self.user).first()
+            if default_account:
+                self.bank_account = default_account
+            else:
+                raise ValidationError(f"User {self.user} has no bank accounts defined.")
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.user} - {self.transaction_subtype} - {self.amount}"

@@ -655,9 +655,7 @@ def adjust_holding_view(request):
         )
 
     try:
-        print("Adjust holding request body:", request.body)
         data = json.loads(request.body.decode("utf-8"))
-        print(data)
         isin = data.get("isin")
         new_shares = float(data.get("new_shares", 0))
         current_price = float(data.get("current_price", 0))
@@ -691,8 +689,6 @@ def adjust_holding_view(request):
             )
         )
 
-        # print("Current holding:", current_holding[0])
-
         if not current_holding or current_holding["net_quantity"] is None:
             current_net_quantity = 0
         else:
@@ -700,7 +696,6 @@ def adjust_holding_view(request):
 
         # Calculate difference
         shares_difference = new_shares - current_net_quantity
-        print(shares_difference, new_shares, current_net_quantity)
         if shares_difference == 0:
             return JsonResponse({"message": "No change in shares"}, status=200)
 

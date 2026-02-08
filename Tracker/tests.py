@@ -689,6 +689,15 @@ class PortfolioViewTestCase(APITestCase):
             username="testuser", email="test@example.com", password="testpass123"
         )
 
+        self.bank_account = BankAccount.objects.create(
+            user=self.user,
+            name="Test Account",
+            iban="DE44500105170123456789",
+            bic="COBADEFFXXX",
+            bank_name="Test Bank",
+            account_type="trade_republic",
+        )
+
         # Create transaction types
         self.income_type = TransactionType.objects.create(
             name="Income", expense_factor=1
@@ -1178,6 +1187,16 @@ class PortfolioViewTestCase(APITestCase):
             username="user2", email="user2@example.com", password="testpass123"
         )
 
+        # Create Bank Account for second user
+        BankAccount.objects.create(
+            user=user2,
+            name="Test Account",
+            iban="DE44500105170123456789",
+            bic="COBADEFFXXX",
+            bank_name="Test Bank",
+            account_type="trade_republic",
+        )
+
         # User 1 buys AAPL
         Transaction.objects.create(
             user=self.user,
@@ -1241,6 +1260,15 @@ class AdjustHoldingTestCase(APITestCase):
         # Create test user
         self.user = User.objects.create_user(
             username="testuser", email="test@example.com", password="testpass123"
+        )
+
+        self.bank_account = BankAccount.objects.create(
+            user=self.user,
+            name="Test Account",
+            iban="DE44500105170123456789",
+            bic="COBADEFFXXX",
+            bank_name="Test Bank",
+            account_type="trade_republic",
         )
 
         # Create transaction types
@@ -1491,6 +1519,15 @@ class PortfolioWithMockPriceTestCase(APITestCase):
         )
         self.sell_subtype = TransactionSubType.objects.create(
             transaction_type=self.income_type, name="Sell"
+        )
+
+        self.bank_account = BankAccount.objects.create(
+            user=self.user,
+            name="Test Account",
+            iban="DE44500105170123456789",
+            bic="COBADEFFXXX",
+            bank_name="Test Bank",
+            account_type="trade_republic",
         )
 
     @patch("Tracker.views.fetch_multiple_prices")
