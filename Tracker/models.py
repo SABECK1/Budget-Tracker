@@ -118,7 +118,7 @@ class Transaction(models.Model):
     )
     bank_account = models.ForeignKey(
         BankAccount,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=False,
         blank=False,
         related_name="outgoing_transactions",
@@ -135,7 +135,11 @@ class Transaction(models.Model):
     tax = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
     journal_entry = models.ForeignKey(
-        JournalEntry, related_name="lines", on_delete=models.CASCADE
+        JournalEntry,
+        related_name="lines",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
     )
 
     def __str__(self):

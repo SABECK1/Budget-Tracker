@@ -4,10 +4,11 @@ import sys
 import django
 
 # Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Budget_Tracker.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Budget_Tracker.settings")
 django.setup()
 
 from Tracker.models import Transaction, TransactionType, TransactionSubType
+
 
 def main():
     print("Starting database setup...")
@@ -28,8 +29,8 @@ def main():
                 "Business Income",
                 "Investment Returns",
                 "Rental Income",
-                "Other Income"
-            ]
+                "Other Income",
+            ],
         },
         "Expense": {
             "factor": -1,  # Expense
@@ -46,8 +47,8 @@ def main():
                 "Travel",
                 "Insurance",
                 "Personal Care",
-                "Other Expenses"
-            ]
+                "Other Expenses",
+            ],
         },
         "Investment": {
             "factor": -1,  # Can be both, but default to expense for tracking
@@ -56,26 +57,21 @@ def main():
                 "Stock/ETF/Bond Purchase",
                 "Real Estate",
                 "Retirement Accounts",
-                "Other Investments"
-            ]
+                "Other Investments",
+            ],
         },
         "Transfer": {
             "factor": 0,  # Neutral
             "description": "Money transfers between accounts",
             "subtypes": [
-                "Bank Transfer",
-                "Credit Card Payment",
                 "Account Transfer",
-                "Wire Transfer"
-            ]
+            ],
         },
         "Not assigned": {
             "factor": -1,
             "description": "Default category for unassigned transactions",
-            "subtypes": [
-                "Not assigned"
-            ]
-        }
+            "subtypes": ["Not assigned"],
+        },
     }
 
     # Create transaction types and subtypes
@@ -86,9 +82,9 @@ def main():
         transaction_type, created = TransactionType.objects.get_or_create(
             name=type_name,
             defaults={
-                'description': type_data["description"],
-                'expense_factor': type_data["factor"]
-            }
+                "description": type_data["description"],
+                "expense_factor": type_data["factor"],
+            },
         )
 
         if created:
@@ -101,9 +97,7 @@ def main():
             subtype, created = TransactionSubType.objects.get_or_create(
                 transaction_type=transaction_type,
                 name=subtype_name,
-                defaults={
-                    'description': f'{subtype_name} under {type_name}'
-                }
+                defaults={"description": f"{subtype_name} under {type_name}"},
             )
 
             if created:
@@ -111,9 +105,9 @@ def main():
             else:
                 print(f"  ⚠ Subtype '{subtype_name}' already exists")
 
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("Database setup completed successfully!")
-    print("="*50)
+    print("=" * 50)
 
     # Show summary
     total_types = TransactionType.objects.count()
@@ -125,5 +119,6 @@ def main():
     print(f"- Transaction Subtypes: {total_subtypes}")
     print(f"- Transactions: {total_transactions}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
