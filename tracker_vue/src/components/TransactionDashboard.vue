@@ -26,6 +26,7 @@ const toast = useToast();
 // State
 const transactions = ref([]);
 const transactionSubtypes = ref([]);
+const transactionTypes = ref([]);
 const bankAccounts = ref([]);
 const loading = ref(true);
 const expandedRows = ref([]);
@@ -50,10 +51,21 @@ const expandedLoading = ref(new Set()); // Track which rows are loading
 
 // Filter state
 const noteFilter = ref('');
+const typeFilter = ref(null);
 const subtypeFilter = ref(null);
 const accountFilter = ref(null);
 const startDateFilter = ref(null);
 const endDateFilter = ref(null);
+
+// Computed properties for filtering
+const availableSubtypes = computed(() => {
+    if (!typeFilter.value) {
+        return transactionSubtypes.value;
+    }
+    return transactionSubtypes.value.filter(subtype => 
+        subtype.transaction_type_name === typeFilter.value
+    );
+});
 
 // Chart time period state
 const chartTimePeriod = ref('month'); // 'day', 'week', 'month'
@@ -88,12 +100,14 @@ const transferForm = ref({
 // Fetch data on mount
 onMounted(async () => {
     try {
-        // Load subtypes and bank accounts initially
-        const [subtypesRes, accountsRes] = await Promise.all([
+        // Load subtypes, types and bank accounts initially
+        const [subtypesRes, typesRes, accountsRes] = await Promise.all([
             axios.get(`${baseurl}/transactionsubtypes/`),
+            axios.get(`${baseurl}/transactiontypes/`),
             axios.get(`${baseurl}/bankaccounts/`)
         ]);
         transactionSubtypes.value = subtypesRes.data;
+        transactionTypes.value = typesRes.data;
         bankAccounts.value = accountsRes.data;
 
         // Load transaction counts by subtype for the summary table
@@ -106,7 +120,7 @@ onMounted(async () => {
 });
 
 // Watch for filter changes to clear cache and reset expanded state
-watch([noteFilter, subtypeFilter, accountFilter, startDateFilter, endDateFilter], async () => {
+watch([noteFilter, typeFilter, subtypeFilter, accountFilter, startDateFilter, endDateFilter], async () => {
     // Clear expanded cache when filters change
     expandedData.value.clear();
 
@@ -674,6 +688,9 @@ const filterTransactions = (transactionsList) => {
         const matchesNote = !noteFilter.value ||
             (transaction.note && transaction.note.toLowerCase().includes(noteFilter.value.toLowerCase()));
 
+        const matchesType = !typeFilter.value ||
+            getSubtypeById(transaction.transaction_subtype)?.transaction_type_name === typeFilter.value;
+
         const matchesSubtype = !subtypeFilter.value ||
             transaction.transaction_subtype === subtypeFilter.value;
 
@@ -687,7 +704,7 @@ const filterTransactions = (transactionsList) => {
         const matchesDate = (!startDate || transactionDate >= startDate) &&
                            (!endDate || transactionDate <= endDate);
 
-        return matchesNote && matchesSubtype && matchesAccount && matchesDate;
+        return matchesNote && matchesType && matchesSubtype && matchesAccount && matchesDate;
     });
 };
 
@@ -858,9 +875,15 @@ const handleTransferTransaction = async () => {
                         class="filter-input" />
                 </div>
                 <div class="filter-item">
-                    <label for="subtype-filter" class="filter-label">Filter by Type:</label>
-                    <Dropdown id="subtype-filter" v-model="subtypeFilter" :options="transactionSubtypes"
-                        option-label="name" option-value="id" placeholder="All types" show-clear
+                    <label for="type-filter" class="filter-label">Filter by Type:</label>
+                    <Dropdown id="type-filter" v-model="typeFilter" :options="transactionTypes"
+                        option-label="name" option-value="name" placeholder="All types" show-clear
+                        class="filter-dropdown" />
+                </div>
+                <div class="filter-item">
+                    <label for="subtype-filter" class="filter-label">Filter by Subtype:</label>
+                    <Dropdown id="subtype-filter" v-model="subtypeFilter" :options="availableSubtypes"
+                        option-label="name" option-value="id" placeholder="All subtypes" show-clear
                         class="filter-dropdown" />
                 </div>
                 <div class="filter-item">
@@ -917,7 +940,7 @@ const handleTransferTransaction = async () => {
 
                 <!-- Savings (Investment) Chart -->
                 <Card class="chart-card chart-card-investment">
-                    <template #title>Expense Breakdown</template>
+                    <template #title>Investment Breakdown</template>
                     <template #content>
                         <div class="chart-container" v-if="savingsChartData.datasets[0].data.length > 0">
                             <Chart type="pie" :data="savingsChartData" :options="pieChartOptions" />
