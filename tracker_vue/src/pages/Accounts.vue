@@ -28,6 +28,11 @@
               {{ slotProps.data.account_type_display || 'Not specified' }}
             </template>
           </Column>
+          <Column field="balance" header="Current Balance" sortable>
+            <template #body="slotProps">
+              {{ formatCurrency(slotProps.data.balance) }}
+            </template>
+          </Column>
           <Column field="bic" header="BIC" sortable>
             <template #body="slotProps">
               {{ slotProps.data.bic }}
@@ -159,11 +164,23 @@ const fetchAccounts = async () => {
       },
       withCredentials: true,
     })
+    
     accounts.value = response.data || []
+    
   } catch (err) {
     console.error('Error fetching accounts:', err)
-    error.value = 'Failed to load bank accounts. Please try again.'
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load bank accounts.', life: 5000 })
+    console.error('Error response:', err.response)
+    console.error('Error status:', err.response?.status)
+    console.error('Error data:', err.response?.data)
+    
+    if (err.response?.status === 401 || err.response?.status === 403) {
+      console.error('Authentication error - user may not be logged in or session expired')
+      error.value = 'Authentication failed. Please log in again.'
+      toast.add({ severity: 'error', summary: 'Authentication Error', detail: 'Please log in again.', life: 5000 })
+    } else {
+      error.value = 'Failed to load bank accounts. Please try again.'
+      toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load bank accounts.', life: 5000 })
+    }
   } finally {
     loading.value = false
   }
@@ -186,8 +203,6 @@ const saveAccount = async () => {
     const url = editingAccount.value?.url || `${process.env.VUE_APP_API_BASE_URL}/bankaccounts/`
     const method = editingAccount.value ? 'put' : 'post'
 
-    console.log('Saving account:', { url, method, data: accountForm, csrf: Cookies.get('csrftoken') })
-
     const response = await axios[method](url, accountForm, {
       headers: {
         'Content-Type': 'application/json',
@@ -196,7 +211,6 @@ const saveAccount = async () => {
       withCredentials: true,
     })
 
-    console.log('Response:', response)
 
     if (response.status === 200 || response.status === 201) {
       toast.add({
@@ -214,17 +228,6 @@ const saveAccount = async () => {
     console.error('Response data:', err.response?.data)
 
     const errors = err.response?.data || {}
-
-    // Check for specific error scenarios
-    if (err.response?.status === 400) {
-      console.log('Bad request error - likely validation issues')
-    } else if (err.response?.status === 401 || err.response?.status === 403) {
-      toast.add({ severity: 'error', summary: 'Authentication Error', detail: 'Please log in again.', life: 5000 })
-      return
-    } else if (err.response?.status === 500) {
-      toast.add({ severity: 'error', summary: 'Server Error', detail: 'Try again later or contact support.', life: 5000 })
-      return
-    }
 
     if (errors.non_field_errors) {
       toast.add({ severity: 'error', summary: 'Validation Error', detail: errors.non_field_errors.join(', '), life: 5000 })
@@ -298,6 +301,19 @@ const closeDialog = () => {
   Object.keys(formErrors).forEach(key => {
     formErrors[key] = ''
   })
+}
+
+// Currency formatting function
+const formatCurrency = (amount) => {
+  if (amount === null || amount === undefined) {
+    return '€0.00';
+  }
+  return new Intl.NumberFormat('de-DE', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
 }
 
 onMounted(() => {

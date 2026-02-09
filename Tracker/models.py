@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.db.models.functions import Coalesce
 from django.db.models import Sum
+from django.db.models import Value, DecimalField
 
 
 class TransactionType(models.Model):
@@ -61,7 +62,9 @@ class BankAccountQuerySet(models.QuerySet):
         """Annotates each account with its current balance."""
         return self.annotate(
             balance=Coalesce(
-                Sum("ledger_entries__amount"), 0, output_field=models.DecimalField()
+                Sum("outgoing_transactions__amount"),
+                Value(0, output_field=DecimalField()),
+                output_field=models.DecimalField(),
             )
         )
 
@@ -71,7 +74,8 @@ class BankAccountManager(models.Manager):
         return BankAccountQuerySet(self.model, using=self._db)
 
     def get_balance(self, account_id):
-        return self.get_queryset().with_balance().get(id=account_id).balance
+        account = self.get_queryset().with_balance().filter(id=account_id).first()
+        return account.balance if account else 0
 
 
 class BankAccount(models.Model):
@@ -100,7 +104,7 @@ class BankAccount(models.Model):
         help_text="Type of bank account for CSV processing",
     )
 
-    objects = BankAccountManager()
+    objects = BankAccountManager.from_queryset(BankAccountQuerySet)()
 
     def __str__(self):
         return f"{self.user} - {self.name}"

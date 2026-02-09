@@ -50,6 +50,8 @@ class TransactionSubtypeSerializer(serializers.ModelSerializer):
 
 
 class BankAccountSerializer(serializers.HyperlinkedModelSerializer):
+    balance = serializers.SerializerMethodField()
+
     class Meta:
         model = models.BankAccount
         fields = [
@@ -60,7 +62,12 @@ class BankAccountSerializer(serializers.HyperlinkedModelSerializer):
             "bic",
             "bank_name",
             "account_type",
+            "balance",
         ]
+
+    def get_balance(self, obj):
+        """Get the current balance for this bank account using BankAccountManager."""
+        return obj.__class__.objects.get_balance(obj.id)
 
 
 class TransactionSerializer(serializers.HyperlinkedModelSerializer):
