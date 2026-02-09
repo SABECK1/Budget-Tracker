@@ -917,6 +917,7 @@ const handleTransferTransaction = async () => {
 
                 <!-- Savings (Investment) Chart -->
                 <Card class="chart-card chart-card-investment">
+                    <template #title>Expense Breakdown</template>
                     <template #content>
                         <div class="chart-container" v-if="savingsChartData.datasets[0].data.length > 0">
                             <Chart type="pie" :data="savingsChartData" :options="pieChartOptions" />
