@@ -4,6 +4,7 @@ import Login from './pages/Login.vue'
 import Register from './pages/Register.vue'
 import Portfolio from './pages/Portfolio.vue'
 import Accounts from './pages/Accounts.vue'
+import Budgets from './pages/Budgets.vue'
 
 const routes = [
   {
@@ -30,6 +31,11 @@ const routes = [
     path: '/accounts',
     name: 'accounts',
     component: Accounts,
+  },
+  {
+    path: '/budgets',
+    name: 'budgets',
+    component: Budgets,
   },
 ]
 

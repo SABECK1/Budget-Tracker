@@ -7,6 +7,7 @@ from Tracker.models import (
     TransactionSubType,
     UserProvidedSymbol,
     BankAccount,
+    Budget,
 )
 from .serializers import (
     GroupSerializer,
@@ -394,7 +395,7 @@ class BudgetViewSet(viewsets.ModelViewSet):
     API endpoint that allows Budgets to be viewed or edited.
     """
 
-    queryset = models.Budget.objects.all().order_by("name")
+    queryset = Budget.objects.all().order_by("name")
     serializer_class = BudgetSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -402,7 +403,7 @@ class BudgetViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
     def get_queryset(self):
-        return models.Budget.objects.filter(user=self.request.user).order_by("name")
+        return Budget.objects.filter(user=self.request.user).order_by("name")
 
 
 @require_http_methods(["GET"])

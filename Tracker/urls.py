@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import CSVUploadView, create_transfer_transaction
+from .views import CSVUploadView
 
 
 urlpatterns = [
