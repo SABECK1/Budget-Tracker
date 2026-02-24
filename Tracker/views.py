@@ -16,6 +16,7 @@ from .serializers import (
     TransactionTypeSerializer,
     CSVUploadSerializer,
     BankAccountSerializer,
+    BudgetSerializer,
 )
 from datetime import datetime
 from django.utils import timezone
@@ -386,6 +387,22 @@ class TransactionTypeViewSet(viewsets.ModelViewSet):
     queryset = TransactionType.objects.all().order_by("name")
     serializer_class = TransactionTypeSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+
+class BudgetViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows Budgets to be viewed or edited.
+    """
+
+    queryset = models.Budget.objects.all().order_by("name")
+    serializer_class = BudgetSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def get_queryset(self):
+        return models.Budget.objects.filter(user=self.request.user).order_by("name")
 
 
 @require_http_methods(["GET"])
