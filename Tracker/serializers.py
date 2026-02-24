@@ -96,3 +96,51 @@ class TransactionSerializer(serializers.HyperlinkedModelSerializer):
             "fee",
             "tax",
         ]
+
+
+class BudgetSerializer(serializers.ModelSerializer):
+    transaction_types = serializers.PrimaryKeyRelatedField(
+        queryset=models.TransactionType.objects.all(), many=True, required=False
+    )
+    transaction_subtypes = serializers.PrimaryKeyRelatedField(
+        queryset=models.TransactionSubType.objects.all(), many=True, required=False
+    )
+    spent_amount = serializers.SerializerMethodField()
+    remaining_amount = serializers.SerializerMethodField()
+    spent_percentage = serializers.SerializerMethodField()
+    period_start = serializers.SerializerMethodField()
+    period_end = serializers.SerializerMethodField()
+
+    class Meta:
+        model = models.Budget
+        fields = [
+            "id",
+            "name",
+            "limit_amount",
+            "period",
+            "custom_period_days",
+            "transaction_types",
+            "transaction_subtypes",
+            "spent_amount",
+            "remaining_amount",
+            "spent_percentage",
+            "period_start",
+            "period_end",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_spent_amount(self, obj):
+        return obj.get_spent_amount()
+
+    def get_remaining_amount(self, obj):
+        return obj.get_remaining_amount()
+
+    def get_spent_percentage(self, obj):
+        return obj.get_spent_percentage()
+
+    def get_period_start(self, obj):
+        return obj.get_current_period_start()
+
+    def get_period_end(self, obj):
+        return obj.get_current_period_end()
