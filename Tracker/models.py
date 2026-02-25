@@ -278,10 +278,12 @@ class Budget(models.Model):
 
     def get_remaining_amount(self):
         """Calculate the remaining budget amount."""
-        return self.limit_amount - self.get_spent_amount()
+        return float(self.limit_amount) - float(self.get_spent_amount())
 
     def get_spent_percentage(self):
         """Calculate the percentage of budget spent."""
         if self.limit_amount == 0:
             return 0
-        return min(100, (self.get_spent_amount() / self.limit_amount) * 100)
+        return min(
+            100, (float(self.get_spent_amount()) / float(self.limit_amount)) * 100
+        )

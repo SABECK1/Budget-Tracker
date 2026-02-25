@@ -131,13 +131,13 @@ class BudgetSerializer(serializers.ModelSerializer):
         ]
 
     def get_spent_amount(self, obj):
-        return obj.get_spent_amount()
+        return float(obj.get_spent_amount())
 
     def get_remaining_amount(self, obj):
-        return obj.get_remaining_amount()
+        return float(obj.get_remaining_amount())
 
     def get_spent_percentage(self, obj):
-        return obj.get_spent_percentage()
+        return float(obj.get_spent_percentage())
 
     def get_period_start(self, obj):
         return obj.get_current_period_start()
