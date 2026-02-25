@@ -1,11 +1,14 @@
 from django import forms
 from django.contrib.auth.models import User
- 
+
+
 class CreateUserForm(forms.ModelForm):
+    email = forms.EmailField(required=True)
+
     class Meta:
         model = User
-        fields = ['email', 'password']
- 
+        fields = ["email", "password"]
+
     def save(self, commit=True) -> User:
         user = super().save(commit=False)
         user.username = self.cleaned_data["email"]
