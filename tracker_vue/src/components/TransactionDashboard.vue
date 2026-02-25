@@ -67,6 +67,22 @@ const availableSubtypes = computed(() => {
     );
 });
 
+// Computed property for add form subtype filtering
+const availableSubtypesForAdd = computed(() => {
+    if (!addForm.value.transaction_type) {
+        return [];
+    }
+    return transactionSubtypes.value.filter(subtype => 
+        subtype.transaction_type_name === addForm.value.transaction_type
+    );
+});
+
+// Filter subtypes when transaction type changes in add form
+const filterSubtypesForAdd = () => {
+    // Clear selected subtype when type changes
+    addForm.value.transaction_subtype = null;
+};
+
 // Chart time period state
 const chartTimePeriod = ref('month'); // 'day', 'week', 'month'
 
@@ -724,8 +740,8 @@ const refreshData = async () => {
 
 // Add transaction function
 const addTransaction = async () => {
-    if (!addForm.value.transaction_subtype || !addForm.value.amount || !addForm.value.bank_account) {
-        toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Transaction Type, Amount and Account are required.', life: 5000 });
+    if (!addForm.value.transaction_type || !addForm.value.transaction_subtype || !addForm.value.amount || !addForm.value.bank_account) {
+        toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Transaction Type, Subtype, Amount and Account are required.', life: 5000 });
         return;
     }
 
@@ -1143,10 +1159,16 @@ const handleTransferTransaction = async () => {
                 <!-- Regular Transaction Form -->
                 <div v-if="!isTransferTransaction(addForm.transaction_subtype)" class="p-fluid form-grid">
                     <div class="field">
-                        <label for="add-transaction_subtype" class="form-label">Transaction Type *</label>
+                        <label for="add-transaction_type" class="form-label">Transaction Type *</label>
+                        <Dropdown id="add-transaction_type" v-model="addForm.transaction_type"
+                            :options="transactionTypes" option-label="name" option-value="name"
+                            placeholder="Select transaction type" @change="filterSubtypesForAdd" class="w-full" />
+                    </div>
+                    <div class="field">
+                        <label for="add-transaction_subtype" class="form-label">Transaction Subtype *</label>
                         <Dropdown id="add-transaction_subtype" v-model="addForm.transaction_subtype"
-                            :options="transactionSubtypes" option-label="name" option-value="id"
-                            placeholder="Select transaction type" class="w-full" />
+                            :options="availableSubtypesForAdd" option-label="name" option-value="id"
+                            placeholder="Select transaction subtype" class="w-full" />
                     </div>
                     <div class="field">
                         <label for="add-bank_account" class="form-label">Account *</label>
@@ -1191,10 +1213,16 @@ const handleTransferTransaction = async () => {
                 <!-- Transfer Transaction Form -->
                 <div v-else class="p-fluid form-grid">
                     <div class="field">
-                        <label for="add-transaction_subtype" class="form-label">Transaction Type *</label>
+                        <label for="add-transaction_type" class="form-label">Transaction Type *</label>
+                        <Dropdown id="add-transaction_type" v-model="addForm.transaction_type"
+                            :options="transactionTypes" option-label="name" option-value="name"
+                            placeholder="Select transaction type" @change="filterSubtypesForAdd" class="w-full" />
+                    </div>
+                    <div class="field">
+                        <label for="add-transaction_subtype" class="form-label">Transaction Subtype *</label>
                         <Dropdown id="add-transaction_subtype" v-model="addForm.transaction_subtype"
-                            :options="transactionSubtypes" option-label="name" option-value="id"
-                            placeholder="Select transaction type" class="w-full" />
+                            :options="availableSubtypesForAdd" option-label="name" option-value="id"
+                            placeholder="Select transaction subtype" class="w-full" />
                     </div>
                     <div class="field">
                         <label for="transfer-from-account" class="form-label">From Account *</label>
