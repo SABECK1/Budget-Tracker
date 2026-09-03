@@ -5,15 +5,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('Tracker', '0003_userprovidedsymbol'),
+        ("Tracker", "0003_userprovidedsymbol"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='transaction',
-            name='created_at',
+            model_name="transaction",
+            name="created_at",
             field=models.DateTimeField(default=django.utils.timezone.now),
         ),
     ]

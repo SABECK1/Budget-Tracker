@@ -6,7 +6,7 @@ from django.utils import timezone
 import csv
 
 # Setup Django environment
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Budget_Tracker.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Budget_Tracker.settings")
 django.setup()
 
 from django.core.management.base import BaseCommand, CommandError
@@ -17,18 +17,18 @@ User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = 'Import example transactions from example_transactions.csv'
+    help = "Import example transactions from example_transactions.csv"
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--user-email',
+            "--user-email",
             type=str,
             required=True,
-            help='Email of the user to import transactions for',
+            help="Email of the user to import transactions for",
         )
 
     def handle(self, *args, **options):
-        user_email = options['user_email']
+        user_email = options["user_email"]
         try:
             user = User.objects.get(email=user_email)
         except User.DoesNotExist:
@@ -36,15 +36,17 @@ class Command(BaseCommand):
 
         # Delete existing transactions for this user to avoid duplicates
         deleted_count = Transaction.objects.filter(user=user).delete()
-        self.stdout.write(f"Deleted {deleted_count[0]} existing transactions for user {user_email}")
+        self.stdout.write(
+            f"Deleted {deleted_count[0]} existing transactions for user {user_email}"
+        )
 
         # Import new transactions
-        csv_path = 'example_transactions.csv'
+        csv_path = "example_transactions.csv"
         if not os.path.exists(csv_path):
             raise CommandError("example_transactions.csv not found")
 
-        with open(csv_path, 'r') as f:
-            reader = csv.reader(f, delimiter=';')
+        with open(csv_path, "r") as f:
+            reader = csv.reader(f, delimiter=";")
             next(reader, None)  # Skip header row
 
             imported_count = 0
@@ -70,7 +72,7 @@ class Command(BaseCommand):
                     def safe_float(value):
                         try:
                             return float(value) if value else 0.0
-                        except (ValueError, TypeError):
+                        except ValueError, TypeError:
                             return 0.0
 
                     # Create transaction
@@ -101,7 +103,9 @@ class Command(BaseCommand):
                     return TransactionSubType.objects.get(name="Inflow")
             else:  # Stock transaction
                 if amount < 0:
-                    return TransactionSubType.objects.get(name="Stock/ETF/Bond Purchase")
+                    return TransactionSubType.objects.get(
+                        name="Stock/ETF/Bond Purchase"
+                    )
                 else:
                     return TransactionSubType.objects.get(name="Investment Returns")
         except TransactionSubType.DoesNotExist:

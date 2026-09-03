@@ -4,20 +4,27 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('Tracker', '0004_alter_transaction_created_at'),
+        ("Tracker", "0004_alter_transaction_created_at"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='transaction',
-            name='bank_name',
-            field=models.CharField(blank=True, help_text='Name of the bank associated with the transaction', max_length=100),
+            model_name="transaction",
+            name="bank_name",
+            field=models.CharField(
+                blank=True,
+                help_text="Name of the bank associated with the transaction",
+                max_length=100,
+            ),
         ),
         migrations.AddField(
-            model_name='transaction',
-            name='bank_number',
-            field=models.CharField(blank=True, help_text='Bank account number associated with the transaction', max_length=50),
+            model_name="transaction",
+            name="bank_number",
+            field=models.CharField(
+                blank=True,
+                help_text="Bank account number associated with the transaction",
+                max_length=50,
+            ),
         ),
     ]

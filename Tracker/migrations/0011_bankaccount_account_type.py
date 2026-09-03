@@ -4,15 +4,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('Tracker', '0010_auto_20251023_2037'),
+        ("Tracker", "0010_auto_20251023_2037"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='bankaccount',
-            name='account_type',
-            field=models.CharField(blank=True, choices=[('trade_republic', 'Trade Republic'), ('volksbank', 'Volksbank')], help_text='Type of bank account for CSV processing', max_length=20),
+            model_name="bankaccount",
+            name="account_type",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("trade_republic", "Trade Republic"),
+                    ("volksbank", "Volksbank"),
+                ],
+                help_text="Type of bank account for CSV processing",
+                max_length=20,
+            ),
         ),
     ]

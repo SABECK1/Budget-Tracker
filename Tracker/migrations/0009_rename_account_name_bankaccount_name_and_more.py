@@ -5,44 +5,51 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('Tracker', '0008_remove_bankaccount_bank_name_and_more'),
+        ("Tracker", "0008_remove_bankaccount_bank_name_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='bankaccount',
-            old_name='account_name',
-            new_name='name',
+            model_name="bankaccount",
+            old_name="account_name",
+            new_name="name",
         ),
         migrations.AddField(
-            model_name='bankaccount',
-            name='bank_name',
-            field=models.CharField(blank=True, help_text='Name of the bank', max_length=100),
+            model_name="bankaccount",
+            name="bank_name",
+            field=models.CharField(
+                blank=True, help_text="Name of the bank", max_length=100
+            ),
         ),
         migrations.AddField(
-            model_name='bankaccount',
-            name='bank_number',
-            field=models.CharField(blank=True, help_text='Unique account number', max_length=50),
+            model_name="bankaccount",
+            name="bank_number",
+            field=models.CharField(
+                blank=True, help_text="Unique account number", max_length=50
+            ),
         ),
         migrations.AddField(
-            model_name='bankaccount',
-            name='bic',
-            field=models.CharField(blank=True, help_text='Bank Identifier Code', max_length=11),
+            model_name="bankaccount",
+            name="bic",
+            field=models.CharField(
+                blank=True, help_text="Bank Identifier Code", max_length=11
+            ),
         ),
         migrations.AddField(
-            model_name='bankaccount',
-            name='iban',
-            field=models.CharField(blank=True, help_text='International Bank Account Number', max_length=34),
+            model_name="bankaccount",
+            name="iban",
+            field=models.CharField(
+                blank=True, help_text="International Bank Account Number", max_length=34
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='bankaccount',
-            unique_together={('user', 'bank_number')},
+            name="bankaccount",
+            unique_together={("user", "bank_number")},
         ),
         migrations.RemoveField(
-            model_name='bankaccount',
-            name='account_number',
+            model_name="bankaccount",
+            name="account_number",
         ),
     ]

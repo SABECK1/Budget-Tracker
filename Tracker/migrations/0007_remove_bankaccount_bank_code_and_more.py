@@ -4,23 +4,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('Tracker', '0006_remove_transaction_bank_name_and_more'),
+        ("Tracker", "0006_remove_transaction_bank_name_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='bankaccount',
-            name='bank_code',
+            model_name="bankaccount",
+            name="bank_code",
         ),
         migrations.RemoveField(
-            model_name='bankaccount',
-            name='created_at',
+            model_name="bankaccount",
+            name="created_at",
         ),
         migrations.AlterField(
-            model_name='bankaccount',
-            name='account_number',
-            field=models.CharField(help_text='Unique account number', max_length=50),
+            model_name="bankaccount",
+            name="account_number",
+            field=models.CharField(help_text="Unique account number", max_length=50),
         ),
     ]

@@ -4,18 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('Tracker', '0009_rename_account_name_bankaccount_name_and_more'),
+        ("Tracker", "0009_rename_account_name_bankaccount_name_and_more"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='bankaccount',
+            name="bankaccount",
             unique_together=set(),
         ),
         migrations.RemoveField(
-            model_name='bankaccount',
-            name='bank_number',
+            model_name="bankaccount",
+            name="bank_number",
         ),
     ]

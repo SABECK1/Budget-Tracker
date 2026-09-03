@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -15,40 +14,88 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='TransactionSubType',
+            name="TransactionSubType",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=50)),
-                ('description', models.TextField(blank=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=50)),
+                ("description", models.TextField(blank=True)),
             ],
         ),
         migrations.CreateModel(
-            name='TransactionType',
+            name="TransactionType",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=50, unique=True)),
-                ('description', models.TextField(blank=True)),
-                ('expense_factor', models.SmallIntegerField(choices=[(1, 'Income'), (-1, 'Expense')], default=-1)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=50, unique=True)),
+                ("description", models.TextField(blank=True)),
+                (
+                    "expense_factor",
+                    models.SmallIntegerField(
+                        choices=[(1, "Income"), (-1, "Expense")], default=-1
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Transaction',
+            name="Transaction",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=12)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('note', models.TextField(blank=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transactions', to=settings.AUTH_USER_MODEL)),
-                ('transaction_subtype', models.ForeignKey(default=1, on_delete=django.db.models.deletion.PROTECT, related_name='transactions', to='Tracker.transactionsubtype')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=12)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("note", models.TextField(blank=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="transactions",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "transaction_subtype",
+                    models.ForeignKey(
+                        default=1,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="transactions",
+                        to="Tracker.transactionsubtype",
+                    ),
+                ),
             ],
         ),
         migrations.AddField(
-            model_name='transactionsubtype',
-            name='transaction_type',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='subtypes', to='Tracker.transactiontype'),
+            model_name="transactionsubtype",
+            name="transaction_type",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="subtypes",
+                to="Tracker.transactiontype",
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='transactionsubtype',
-            unique_together={('transaction_type', 'name')},
+            name="transactionsubtype",
+            unique_together={("transaction_type", "name")},
         ),
     ]
