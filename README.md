@@ -64,7 +64,7 @@ A comprehensive personal finance management application with integrated stock po
 
 5. **Setup transaction categories** 
    ```bash
-   python setup_transaction_types.py
+   python setup.py
    ```
 
 6. **Create superuser** (optional)

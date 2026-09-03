@@ -1,22 +1,18 @@
-from django.test import TestCase
-from django.contrib.auth.models import User
-from django.core.files.uploadedfile import SimpleUploadedFile
-from rest_framework.test import APITestCase
-from rest_framework import status
-from .models import Transaction, TransactionType, TransactionSubType, BankAccount
+import csv
 import io
 import json
-import csv
-import unittest
-from unittest.mock import Mock, patch, AsyncMock
-import asyncio
-from decimal import Decimal
-from django.utils import timezone
-from datetime import datetime
 
 # Import portfolio classes for testing
-import sys
-import os
+from decimal import Decimal
+from unittest.mock import patch
+
+from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+from .models import BankAccount, Transaction, TransactionSubType, TransactionType
 
 # sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'API', 'TradeRepublic'))
 # from standalone_portfolio import Portfolio, TradeRepublicApi, get_portfolio_data
@@ -1546,7 +1542,6 @@ class PortfolioWithMockPriceTestCase(APITestCase):
         )
 
         # Mock the async function to return data in the format expected by the view
-        import asyncio
 
         async def mock_async_fetch(*args, **kwargs):
             # Return as dictionary with ISIN as keys, matching the format used in view
@@ -1598,7 +1593,7 @@ class PortfolioWithMockPriceTestCase(APITestCase):
         # Mock successful synchronous fallback fetch
         mock_get_history.return_value = (
             "Apple Inc.",
-            [[datetime.now().timestamp() * 1000, 18.50]],
+            [[timezone.now().timestamp() * 1000, 18.50]],
         )
 
         response = self.client.get("/api/portfolio/")

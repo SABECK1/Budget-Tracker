@@ -1,44 +1,46 @@
 # Create your views here.
+import asyncio
+import csv
+import io
+import json
+from datetime import datetime
+
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import Group, User
-from rest_framework import permissions, viewsets
+from django.db import models
+from django.db.models import Case, F, Sum, When
+from django.http import JsonResponse
+from django.utils import timezone
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_http_methods
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from Tracker.models import (
-    TransactionType,
-    TransactionSubType,
-    UserProvidedSymbol,
     BankAccount,
     Budget,
+    TransactionSubType,
+    TransactionType,
+    UserProvidedSymbol,
 )
+
+from .forms import CreateUserForm
+from .models import Transaction
 from .serializers import (
-    GroupSerializer,
-    UserSerializer,
-    TransactionSubtypeSerializer,
-    TransactionSerializer,
-    TransactionTypeSerializer,
-    CSVUploadSerializer,
     BankAccountSerializer,
     BudgetSerializer,
+    CSVUploadSerializer,
+    GroupSerializer,
+    TransactionSerializer,
+    TransactionSubtypeSerializer,
+    TransactionTypeSerializer,
+    UserSerializer,
 )
-from datetime import datetime
-from django.utils import timezone
-from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.response import Response
-from .models import Transaction
 from .services import LedgerService
-import io
-import csv
-from django.http import JsonResponse
-from django.views.decorators.csrf import ensure_csrf_cookie
-import json
-from django.views.decorators.http import require_http_methods
-from django.contrib.auth import authenticate, login, logout
-from .forms import CreateUserForm
-from django.db import models
-from django.db.models import Sum, F, Case, When
-from .stocks import get_history, fetch_multiple_prices, get_symbol_and_industry
-import asyncio
+from .stocks import fetch_multiple_prices, get_history, get_symbol_and_industry
 
 
 class CSVUploadView(APIView):
@@ -127,7 +129,7 @@ class CSVUploadView(APIView):
             # Assuming format: Date;Type;Amount;Note;ISIN;Quantity;Fee;Tax
             isin = row[4] if len(row) > 4 and row[4] else ""
             is_stock = bool(isin)
-            amount = float(row[2]) if row[2] else float(0.0)
+            amount = float(row[2]) if row[2] else 0.0
             note = row[3] if len(row) > 3 and row[3] else ""
 
             transaction_subtype = self.get_transaction_subtype(is_stock, amount)
@@ -159,7 +161,7 @@ class CSVUploadView(APIView):
             def safe_float(value):
                 try:
                     return float(value) if value else 0.0
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     return 0.0
 
             Transaction.objects.create(
@@ -200,7 +202,7 @@ class CSVUploadView(APIView):
 
             isin = row[4] if len(row) > 4 and row[4] else ""
             is_stock = bool(isin)
-            amount = float(row[2]) if row[2] else float(0.0)
+            amount = float(row[2]) if row[2] else 0.0
             note = row[3] if len(row) > 3 and row[3] else ""
 
             transaction_subtype = self.get_transaction_subtype(is_stock, amount)
@@ -231,7 +233,7 @@ class CSVUploadView(APIView):
             def safe_float(value):
                 try:
                     return float(value) if value else 0.0
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     return 0.0
 
             Transaction.objects.create(
@@ -299,7 +301,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         )
 
         # Filter by transaction_subtype if provided
-        subtype_id = self.request.query_params.get("transaction_subtype", None)
+        subtype_id = self.request.query_params.get("transaction_subtype")
         if subtype_id is not None:
             queryset = queryset.filter(transaction_subtype=subtype_id)
 
@@ -860,4 +862,4 @@ def create_transfer_transaction(request):
     except ValueError as e:
         return JsonResponse({"error": str(e)}, status=400)
     except Exception as e:
-        return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=500)
+        return JsonResponse({"error": f"Unexpected error: {e!s}"}, status=500)

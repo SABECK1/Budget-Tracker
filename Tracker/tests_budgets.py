@@ -1,20 +1,18 @@
-from django.test import TestCase
-from django.contrib.auth.models import User
-from rest_framework.test import APITestCase
-from rest_framework import status
-from rest_framework.test import APIClient
-from django.utils import timezone
 from datetime import datetime, timedelta
-from decimal import Decimal
-import json
 from unittest.mock import patch
 
+from django.contrib.auth.models import User
+from django.test import TestCase
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.test import APIClient, APITestCase
+
 from Tracker.models import (
-    Transaction,
-    TransactionType,
-    TransactionSubType,
     BankAccount,
     Budget,
+    Transaction,
+    TransactionSubType,
+    TransactionType,
 )
 from Tracker.serializers import BudgetSerializer
 
@@ -280,7 +278,7 @@ class BudgetCalculationTestCase(TestCase):
         )
         self.budget.transaction_subtypes.add(self.food_subtype)
 
-    def create_transaction(self, amount, subtype, days_ago=0):
+    def create_transaction(self, amount, subtype, days_ago=0, created_at=None):
         """Helper method to create a transaction"""
         return Transaction.objects.create(
             user=self.user,
@@ -289,7 +287,7 @@ class BudgetCalculationTestCase(TestCase):
             isin="",
             transaction_subtype=subtype,
             bank_account=self.bank_account,
-            created_at=timezone.now() - timedelta(days=days_ago),
+            created_at=created_at or timezone.now() - timedelta(days=days_ago),
         )
 
     def test_get_spent_amount_no_transactions(self):
@@ -300,9 +298,16 @@ class BudgetCalculationTestCase(TestCase):
     def test_get_spent_amount_with_expense_transactions(self):
         """Test spent amount with expense transactions"""
         # Create expense transactions
-        self.create_transaction(-20.00, self.food_subtype, days_ago=1)
-        self.create_transaction(-30.00, self.food_subtype, days_ago=2)
-        self.create_transaction(-15.00, self.food_subtype, days_ago=3)
+        period_start = self.budget.get_current_period_start()
+        self.create_transaction(
+            -20.00, self.food_subtype, created_at=period_start + timedelta(hours=1)
+        )
+        self.create_transaction(
+            -30.00, self.food_subtype, created_at=period_start + timedelta(hours=2)
+        )
+        self.create_transaction(
+            -15.00, self.food_subtype, created_at=period_start + timedelta(hours=3)
+        )
 
         spent = self.budget.get_spent_amount()
         self.assertEqual(spent, 65.00)  # 20 + 30 + 15
@@ -657,7 +662,7 @@ class BudgetPeriodLogicTestCase(TestCase):
             account_type="trade_republic",
         )
 
-    def create_transaction(self, amount, days_ago=0):
+    def create_transaction(self, amount, days_ago=0, created_at=None):
         """Helper method to create a transaction"""
         return Transaction.objects.create(
             user=self.user,
@@ -666,7 +671,7 @@ class BudgetPeriodLogicTestCase(TestCase):
             isin="",
             transaction_subtype=self.food_subtype,
             bank_account=self.bank_account,
-            created_at=timezone.now() - timedelta(days=days_ago),
+            created_at=created_at or timezone.now() - timedelta(days=days_ago),
         )
 
     def test_daily_budget_period_reset(self):
@@ -743,9 +748,10 @@ class BudgetPeriodLogicTestCase(TestCase):
                 created_at=last_month,
             )
 
-        # Create transactions from this month
-        self.create_transaction(-100.00, days_ago=10)
-        self.create_transaction(-50.00, days_ago=5)
+        # Create transactions from the current period
+        period_start = budget.get_current_period_start()
+        self.create_transaction(-100.00, created_at=period_start + timedelta(hours=1))
+        self.create_transaction(-50.00, created_at=period_start + timedelta(hours=2))
 
         spent = budget.get_spent_amount()
         self.assertEqual(spent, 150.00)  # Only this month's transactions
