@@ -2,7 +2,7 @@
 
 A comprehensive personal finance management application with integrated stock portfolio tracking, built with Django REST Framework and Vue.js. Track your income, expenses, investments, transfers, and stock holdings with real-time prices. Designed to work seamlessly with PYTR for importing Trade Republic transactions and providing complete overview of your financial portfolio!
 
-## 🚀 Features
+## Features
 
 ### Core Functionality
 - **Transaction Management**: Add, edit, and categorize financial transactions (income, expenses, investments)
@@ -17,10 +17,10 @@ A comprehensive personal finance management application with integrated stock po
 - **Symbol Support**: Custom stock symbol mapping for unsupported ISINs
 - **Profit/Loss Tracking**: Detailed P/L calculations across entire portfolio
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Backend
-- **Django 4.x** - Web framework
+- **Django 5.2** - Web framework
 - **Django REST Framework** - API development
 - **SQLite** - Database (development)
 
@@ -30,11 +30,12 @@ A comprehensive personal finance management application with integrated stock po
 - **Axios** - HTTP client for API calls
 - **Vue Router** - Client-side routing
 
-## 📋 Prerequisites
+## Prerequisites
 
-- Python 3.8+
+- Python 3.14+
+- [uv](https://docs.astral.sh/uv/)
 - Node.js 14+
-- npm or yarn
+- npm
 
 ## 🔧 Installation & Setup
 
@@ -46,36 +47,36 @@ A comprehensive personal finance management application with integrated stock po
    cd Budget-Tracker
    ```
 
-2. **Create virtual environment**
+2. **Synchronize Python dependencies**
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   uv sync
    ```
 
-3. **Install Python dependencies**
+3. **Run database migrations**
    ```bash
-   pip install -r requirements.txt
+   uv run python manage.py migrate
    ```
 
-4. **Run database migrations**
+4. **Setup transaction categories**
    ```bash
-   python manage.py migrate
+   uv run python setup.py
    ```
 
-5. **Setup transaction categories** 
+5. **Create superuser** (optional)
    ```bash
-   python setup.py
+   uv run python manage.py createsuperuser
    ```
 
-6. **Create superuser** (optional)
+6. **Start Django server**
    ```bash
-   python manage.py createsuperuser
+   uv run python manage.py runserver
    ```
 
-7. **Start Django server**
-   ```bash
-   python manage.py runserver
-   ```
+To synchronize dependencies, run migrations, set up categories, install frontend dependencies, and start both development servers in one command:
+
+```bash
+uv run python startup.py
+```
 
 ### Frontend Setup
 
@@ -99,7 +100,7 @@ A comprehensive personal finance management application with integrated stock po
    npm run serve
    ```
 
-## 🚀 Usage
+## Usage
 ### CSV Import Format
 
 This project is made for use with PYTR. You should use the standard transactions.csv file you get by using dl_docs.
@@ -107,10 +108,10 @@ This project is made for use with PYTR. You should use the standard transactions
 ### API Endpoints
 
 #### Authentication
-- `POST /api/login/` - User login
-- `POST /api/register/` - User registration
-- `POST /api/logout/` - User logout
-- `GET /api/set-csrf-token/` - Set CSRF token
+- `POST /api/login` - User login
+- `POST /api/register` - User registration
+- `POST /api/logout` - User logout
+- `GET /api/set-csrf-token` - Set CSRF token
 
 #### Transactions
 - `GET /api/transactions/` - List all transactions
@@ -134,11 +135,11 @@ This project is made for use with PYTR. You should use the standard transactions
 #### File Upload
 - `POST /api/upload-csv/` - Upload CSV file for transaction import
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Django](https://www.djangoproject.com/) - The web framework
 - [Vue.js](https://vuejs.org/) - The progressive JavaScript framework

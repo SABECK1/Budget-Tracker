@@ -1,15 +1,24 @@
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 VUE_ROOT = PROJECT_ROOT / "tracker_vue"
+UV_CMD = shutil.which("uv")
 
 
 def run(command, cwd=PROJECT_ROOT):
     result = subprocess.run(command, cwd=cwd)
     if result.returncode != 0:
         raise SystemExit(result.returncode)
+
+
+def uv_command(*args):
+    if UV_CMD is None:
+        print("uv is required. Install it from https://docs.astral.sh/uv/")
+        raise SystemExit(1)
+    return [UV_CMD, *args]
 
 
 def start_servers():
@@ -19,7 +28,7 @@ def start_servers():
     try:
         processes.append(
             subprocess.Popen(
-                [sys.executable, "manage.py", "runserver"],
+                uv_command("run", "python", "manage.py", "runserver"),
                 cwd=PROJECT_ROOT,
             )
         )
@@ -48,14 +57,14 @@ def start_servers():
 def main():
     print("Starting Budget Tracker setup...")
 
-    print("Installing Python requirements...")
-    run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+    print("Synchronizing Python dependencies with uv...")
+    run(uv_command("sync"))
 
     print("Running database migrations...")
-    run([sys.executable, "manage.py", "migrate", "--no-input"])
+    run(uv_command("run", "python", "manage.py", "migrate", "--no-input"))
 
     print("Setting up transaction categories...")
-    run([sys.executable, "setup.py"])
+    run(uv_command("run", "python", "setup.py"))
 
     npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
     if not (VUE_ROOT / "node_modules").exists():
