@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 import os
-import sys
+
 import django
 
 # Setup Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Budget_Tracker.settings")
 django.setup()
 
-from Tracker.models import Transaction, TransactionType, TransactionSubType
+from Tracker.models import Transaction, TransactionSubType, TransactionType
 
 
 def main():
@@ -109,7 +109,7 @@ def main():
     total_subtypes = TransactionSubType.objects.count()
     total_transactions = Transaction.objects.count()
 
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"- Transaction Types: {total_types}")
     print(f"- Transaction Subtypes: {total_subtypes}")
     print(f"- Transactions: {total_transactions}")
