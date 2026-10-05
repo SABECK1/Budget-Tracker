@@ -8,6 +8,7 @@ import App from './App.vue'
 import { useAuthStore } from './store/auth'
 import { definePreset } from '@primeuix/themes';
 import 'primeicons/primeicons.css';
+import './assets/css/main.css';
 import { ToastService } from 'primevue';
 
 const pinia = createPinia()

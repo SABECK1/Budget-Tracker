@@ -141,8 +141,7 @@
 <script setup>
 import { ref, onMounted, reactive, computed } from 'vue'
 import AppNavigation from '../components/navigation.vue'
-import axios from 'axios'
-import Cookies from 'js-cookie'
+import api from '@/services/api'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
@@ -154,7 +153,6 @@ import Dialog from 'primevue/dialog'
 import { useToast } from 'primevue/usetoast'
 import ProtectedLayout from '@/components/ProtectedLayout.vue'
 import { useAuthStore } from '@/store/auth'
-import '../assets/css/main.css'
 
 const toast = useToast()
 
@@ -224,13 +222,7 @@ const fetchBudgets = async () => {
     loading.value = true
     error.value = ''
 
-    const response = await axios.get(`${process.env.VUE_APP_API_BASE_URL}/budgets/`, {
-      headers: {
-        'Content-Type': 'application/json',
-        "X-CSRFToken": Cookies.get('csrftoken'),
-      },
-      withCredentials: true,
-    })
+    const response = await api.get('/budgets/')
     
     budgets.value = response.data || []
     
@@ -256,13 +248,7 @@ const fetchBudgets = async () => {
 // Fetch transaction types
 const fetchTransactionTypes = async () => {
   try {
-    const response = await axios.get(`${process.env.VUE_APP_API_BASE_URL}/transactiontypes/`, {
-      headers: {
-        'Content-Type': 'application/json',
-        "X-CSRFToken": Cookies.get('csrftoken'),
-      },
-      withCredentials: true,
-    })
+    const response = await api.get('/transactiontypes/')
     transactionTypes.value = response.data || []
   } catch (err) {
     console.error('Error fetching transaction types:', err)
@@ -273,13 +259,7 @@ const fetchTransactionTypes = async () => {
 // Fetch transaction subtypes
 const fetchTransactionSubtypes = async () => {
   try {
-    const response = await axios.get(`${process.env.VUE_APP_API_BASE_URL}/transactionsubtypes/`, {
-      headers: {
-        'Content-Type': 'application/json',
-        "X-CSRFToken": Cookies.get('csrftoken'),
-      },
-      withCredentials: true,
-    })
+    const response = await api.get('/transactionsubtypes/')
     transactionSubtypes.value = response.data || []
   } catch (err) {
     console.error('Error fetching transaction subtypes:', err)
@@ -311,16 +291,10 @@ const saveBudget = async () => {
       return
     }
 
-    const url = editingBudget.value?.url || `${process.env.VUE_APP_API_BASE_URL}/budgets/`
+    const url = editingBudget.value?.url || '/budgets/'
     const method = editingBudget.value ? 'put' : 'post'
 
-    const response = await axios[method](url, budgetForm, {
-      headers: {
-        'Content-Type': 'application/json',
-        "X-CSRFToken": Cookies.get('csrftoken'),
-      },
-      withCredentials: true,
-    })
+    const response = await api[method](url, budgetForm)
 
     if (response.status === 200 || response.status === 201) {
       toast.add({
@@ -384,12 +358,7 @@ const confirmDelete = (budget) => {
 // Delete budget
 const deleteBudget = async () => {
   try {
-    await axios.delete(budgetToDelete.value.url, {
-      headers: {
-        "X-CSRFToken": Cookies.get('csrftoken'),
-      },
-      withCredentials: true,
-    })
+    await api.delete(budgetToDelete.value.url)
     toast.add({ severity: 'success', summary: 'Success', detail: 'Budget deleted successfully.', life: 5000 })
     fetchBudgets()
     showDeleteDialog.value = false

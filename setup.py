@@ -13,11 +13,6 @@ from Tracker.models import Transaction, TransactionType, TransactionSubType
 def main():
     print("Starting database setup...")
 
-    # Delete all transactions
-    print("Deleting all transactions...")
-    deleted_count = Transaction.objects.all().delete()
-    print(f"Deleted {deleted_count[0]} transactions")
-
     # Define transaction types and their subtypes
     transaction_data = {
         "Income": {
