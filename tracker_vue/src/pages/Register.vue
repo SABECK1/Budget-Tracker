@@ -89,7 +89,6 @@ import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
-import '../assets/css/main.css'
 
 const router = useRouter()
 

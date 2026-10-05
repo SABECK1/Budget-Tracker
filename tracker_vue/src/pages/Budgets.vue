@@ -485,7 +485,7 @@ onMounted(() => {
   /* background-color: var(--true-black); */
   /* border-bottom: 2px solid #dee2e6; */
   font-weight: 600;
-  color: (--text-color);
+  color: var(--text-color);
   padding: 12px 16px;
 }
 

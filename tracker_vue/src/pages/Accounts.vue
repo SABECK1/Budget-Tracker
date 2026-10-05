@@ -118,7 +118,6 @@ import Dialog from 'primevue/dialog'
 import { useToast } from 'primevue/usetoast'
 import ProtectedLayout from '@/components/ProtectedLayout.vue'
 import { useAuthStore } from '@/store/auth'
-import '../assets/css/main.css'
 
 const toast = useToast()
 
