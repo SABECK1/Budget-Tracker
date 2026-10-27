@@ -161,7 +161,7 @@ class CSVUploadView(APIView):
             def safe_float(value):
                 try:
                     return float(value) if value else 0.0
-                except ValueError, TypeError:
+                except (ValueError, TypeError):
                     return 0.0
 
             Transaction.objects.create(
@@ -233,7 +233,7 @@ class CSVUploadView(APIView):
             def safe_float(value):
                 try:
                     return float(value) if value else 0.0
-                except ValueError, TypeError:
+                except (ValueError, TypeError):
                     return 0.0
 
             Transaction.objects.create(
