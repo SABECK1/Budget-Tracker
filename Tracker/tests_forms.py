@@ -1,5 +1,8 @@
-from django.test import TestCase
+import json
+
 from django.contrib.auth.models import User
+from django.test import TestCase
+
 from Tracker.forms import CreateUserForm
 
 
@@ -114,7 +117,7 @@ class CreateUserFormTestCase(TestCase):
         self.assertEqual(user.email, "user@domain.com")
 
     def test_form_duplicate_email(self):
-        """Test form with duplicate email"""
+        """Test form rejects a duplicate email before saving"""
         # Create a user first
         User.objects.create_user(
             username="existing@example.com",
@@ -125,12 +128,26 @@ class CreateUserFormTestCase(TestCase):
         form_data = {"email": "existing@example.com", "password": "testpassword123"}
         form = CreateUserForm(data=form_data)
 
-        # Form should be valid (form validation doesn't check for duplicates)
-        self.assertTrue(form.is_valid())
+        self.assertFalse(form.is_valid())
+        self.assertIn("email", form.errors)
 
-        # But saving should fail due to database constraint
-        with self.assertRaises(Exception):
-            form.save()
+    def test_register_duplicate_email_returns_bad_request(self):
+        User.objects.create_user(
+            username="existing@example.com",
+            email="existing@example.com",
+            password="password123",
+        )
+
+        response = self.client.post(
+            "/api/register",
+            data=json.dumps(
+                {"email": "EXISTING@example.com", "password": "testpassword123"}
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("already exists", response.json()["error"])
 
     def test_form_whitespace_handling(self):
         """Test form with whitespace in email"""

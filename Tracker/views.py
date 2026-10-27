@@ -7,7 +7,7 @@ from datetime import datetime
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import Group, User
-from django.db import models
+from django.db import IntegrityError, models
 from django.db.models import Case, F, Sum, When
 from django.http import JsonResponse
 from django.utils import timezone
@@ -768,7 +768,12 @@ def register(request):
     data = json.loads(request.body.decode("utf-8"))
     form = CreateUserForm(data)
     if form.is_valid():
-        form.save()
+        try:
+            form.save()
+        except IntegrityError:
+            return JsonResponse(
+                {"error": "A user with this email already exists."}, status=400
+            )
         return JsonResponse({"success": "User registered successfully"}, status=201)
     else:
         errors = form.errors.as_json()
