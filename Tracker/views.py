@@ -4,6 +4,7 @@ import csv
 import io
 import json
 from datetime import datetime
+from typing import ClassVar
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import Group, User
@@ -44,8 +45,8 @@ from .stocks import fetch_multiple_prices, get_history, get_symbol_and_industry
 
 
 class CSVUploadView(APIView):
-    serializer_class = CSVUploadSerializer
-    parser_classes = [MultiPartParser, FormParser]
+    serializer_class: ClassVar = CSVUploadSerializer
+    parser_classes: ClassVar = [MultiPartParser, FormParser]
 
     def get_transaction_subtype(self, is_stock: bool, amount: float):
         try:
@@ -259,8 +260,8 @@ class UserViewSet(viewsets.ModelViewSet):
     """
 
     queryset = User.objects.all().order_by("-date_joined")
-    serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    serializer_class: ClassVar = UserSerializer
+    permission_classes: ClassVar = [permissions.IsAuthenticated]
 
 
 class GroupViewSet(viewsets.ModelViewSet):
@@ -269,8 +270,8 @@ class GroupViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Group.objects.all().order_by("name")
-    serializer_class = GroupSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    serializer_class: ClassVar = GroupSerializer
+    permission_classes: ClassVar = [permissions.IsAuthenticated]
 
 
 class TransactionSubtypeViewSet(viewsets.ModelViewSet):
@@ -279,8 +280,8 @@ class TransactionSubtypeViewSet(viewsets.ModelViewSet):
     """
 
     queryset = TransactionSubType.objects.all().order_by("name")
-    serializer_class = TransactionSubtypeSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    serializer_class: ClassVar = TransactionSubtypeSerializer
+    permission_classes: ClassVar = [permissions.IsAuthenticated]
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -289,8 +290,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Transaction.objects.all().order_by("created_at")
-    serializer_class = TransactionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    serializer_class: ClassVar = TransactionSerializer
+    permission_classes: ClassVar = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -372,8 +373,8 @@ class BankAccountViewSet(viewsets.ModelViewSet):
     """
 
     queryset = BankAccount.objects.all().order_by("name")
-    serializer_class = BankAccountSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    serializer_class: ClassVar = BankAccountSerializer
+    permission_classes: ClassVar = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -388,8 +389,8 @@ class TransactionTypeViewSet(viewsets.ModelViewSet):
     """
 
     queryset = TransactionType.objects.all().order_by("name")
-    serializer_class = TransactionTypeSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    serializer_class: ClassVar = TransactionTypeSerializer
+    permission_classes: ClassVar = [permissions.IsAuthenticated]
 
 
 class BudgetViewSet(viewsets.ModelViewSet):
@@ -398,8 +399,8 @@ class BudgetViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Budget.objects.all().order_by("name")
-    serializer_class = BudgetSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    serializer_class: ClassVar = BudgetSerializer
+    permission_classes: ClassVar = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -449,7 +450,7 @@ def portfolio_view(request):
     # Fetch all prices concurrently
     try:
         price_data = asyncio.run(fetch_multiple_prices(isins, max_concurrent=5))
-    except Exception as e:
+    except TimeoutError as e:
         print(f"Error in concurrent fetching: {e}")
 
         # Fallback to synchronous fetching
@@ -472,7 +473,7 @@ def portfolio_view(request):
                         "current_price": None,
                         "success": False,
                     }
-            except Exception as e2:
+            except (ValueError, TypeError, RuntimeError) as e2:
                 print(f"Error fetching price for {isin}: {e2}")
                 price_data[isin] = {
                     "isin": isin,
@@ -659,7 +660,7 @@ def save_symbol(request):
 
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
-    except Exception as e:
+    except (ValueError, TypeError, RuntimeError) as e:
         return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -864,7 +865,5 @@ def create_transfer_transaction(request):
 
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
-    except ValueError as e:
-        return JsonResponse({"error": str(e)}, status=400)
-    except Exception as e:
+    except (TypeError, RuntimeError) as e:
         return JsonResponse({"error": f"Unexpected error: {e!s}"}, status=500)

@@ -159,7 +159,7 @@ venv.bak/
 
 # Spyder project settings
 .spyderproject
-.spyproject
+.spyderproject
 
 # Rope project settings
 .ropeproject
@@ -230,3 +230,5 @@ ls.py
 stocktest.py
 rename_subtypes.py
 test_transactions - Kopie.csv
+
+
