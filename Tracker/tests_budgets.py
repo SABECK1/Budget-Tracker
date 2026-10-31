@@ -1,3 +1,4 @@
+import calendar
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
@@ -117,10 +118,17 @@ class BudgetModelTestCase(TestCase):
         self.assertEqual(budget.get_period_timedelta().days, 7)
 
         budget.period = "monthly"
-        self.assertEqual(budget.get_period_timedelta().days, 30)
+        now = timezone.now()
+        self.assertEqual(
+            budget.get_period_timedelta().days,
+            calendar.monthrange(now.year, now.month)[1],
+        )
 
         budget.period = "yearly"
-        self.assertEqual(budget.get_period_timedelta().days, 365)
+        self.assertEqual(
+            budget.get_period_timedelta().days,
+            366 if calendar.isleap(now.year) else 365,
+        )
 
         budget.period = "custom"
         budget.custom_period_days = 45

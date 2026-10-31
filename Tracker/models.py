@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db.models.functions import Coalesce
 from django.db.models import Sum
 from django.db.models import Value, DecimalField
+import calendar
 from datetime import timedelta
 
 
@@ -202,17 +203,18 @@ class Budget(models.Model):
 
     def get_period_timedelta(self):
         """Return the timedelta for the budget period."""
+        now = timezone.now()
         if self.period == "daily":
             return timedelta(days=1)
         elif self.period == "weekly":
             return timedelta(weeks=1)
         elif self.period == "monthly":
-            return timedelta(days=30)  # Approximate
+            return timedelta(days=calendar.monthrange(now.year, now.month)[1])
         elif self.period == "yearly":
-            return timedelta(days=365)  # Approximate
+            return timedelta(days=366 if calendar.isleap(now.year) else 365)
         elif self.period == "custom":
             return timedelta(days=self.custom_period_days or 1)
-        return timedelta(days=30)
+        return timedelta(days=calendar.monthrange(now.year, now.month)[1])
 
     def get_current_period_start(self):
         """Get the start date of the current budget period."""
@@ -252,7 +254,9 @@ class Budget(models.Model):
 
         # Get transactions for this budget in the current period
         transactions = Transaction.objects.filter(
-            user=self.user, created_at__gte=period_start, created_at__lt=period_end
+            user=self.user,
+            created_at__gte=period_start,
+            created_at__lte=period_end - timedelta(microseconds=1),
         )
 
         # Filter by transaction types and subtypes if specified

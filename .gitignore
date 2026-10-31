@@ -60,6 +60,7 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+*.sqlite3
 
 # Flask stuff:
 instance/
@@ -149,6 +150,8 @@ activemq-data/
 
 # Environments
 .env
+.env.*
+!.env.example
 .envrc
 .venv
 env/
@@ -207,6 +210,8 @@ cython_debug/
 .history/
 *.swp
 *.swo
+.devdbrc
+node_modules/
 
 # Operating system files
 .DS_Store
@@ -230,5 +235,4 @@ ls.py
 stocktest.py
 rename_subtypes.py
 test_transactions - Kopie.csv
-
 

@@ -450,7 +450,7 @@ def portfolio_view(request):
     # Fetch all prices concurrently
     try:
         price_data = asyncio.run(fetch_multiple_prices(isins, max_concurrent=5))
-    except TimeoutError as e:
+    except Exception as e:
         print(f"Error in concurrent fetching: {e}")
 
         # Fallback to synchronous fetching
