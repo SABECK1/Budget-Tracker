@@ -2,6 +2,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+import calendar
 from datetime import timedelta
 from Tracker.models import (
     TransactionType,
@@ -423,8 +424,15 @@ class BudgetTestCase(TestCase):
 
         self.assertEqual(budget_daily.get_period_timedelta(), timedelta(days=1))
         self.assertEqual(budget_weekly.get_period_timedelta(), timedelta(weeks=1))
-        self.assertEqual(budget_monthly.get_period_timedelta(), timedelta(days=30))
-        self.assertEqual(budget_yearly.get_period_timedelta(), timedelta(days=365))
+        now = timezone.now()
+        self.assertEqual(
+            budget_monthly.get_period_timedelta(),
+            timedelta(days=calendar.monthrange(now.year, now.month)[1]),
+        )
+        self.assertEqual(
+            budget_yearly.get_period_timedelta(),
+            timedelta(days=366 if calendar.isleap(now.year) else 365),
+        )
         self.assertEqual(budget_custom.get_period_timedelta(), timedelta(days=15))
 
     def test_budget_get_current_period_start(self):
